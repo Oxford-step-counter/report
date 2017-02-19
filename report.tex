@@ -1,0 +1,207 @@
+%master_report.tex, can't be edited - Mark
+% edit the content.tex file instead
+\documentclass[a4paper,11pt,hidelinks]{report}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage[titletoc,toc,page]{appendix}
+
+\usepackage[english]{babel}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{amssymb}
+\usepackage{titlesec}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{calc}
+\usepackage{amsfonts}
+\usepackage{lipsum}
+\usepackage[amsmath,amsthm,thmmarks]{ntheorem}
+\usepackage{fancyvrb}
+\usepackage{setspace}
+\usepackage[T1]{fontenc}
+\doublespacing
+\usepackage{url}
+\usepackage{letltxmacro}
+%\usepackage{bigints}
+\usepackage{soul}
+\usepackage[top=20mm,left=20mm,right=20mm,bottom=20mm,footskip=25pt]{geometry} %was 0.14in, don't know why - Mark
+\usepackage{fancyhdr}
+\usepackage{footnote}
+\usepackage{appendix}
+\usepackage{siunitx}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{textgreek}
+\usepackage{longtable}
+\usepackage{bigstrut}
+\usepackage[table,dvipsnames]{xcolor}
+\usepackage{pdfpages}
+\usepackage{titling}
+\usepackage{csquotes}
+\usepackage{pbox}
+\usepackage{booktabs}
+\usepackage[export]{adjustbox}
+\usepackage{array}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+%\usepackage{pbox}
+\usepackage{rotating}   % added by Mark for use in table
+\usepackage{pifont}     % added by Mark to include tick symbols in table
+\usepackage{listings}   % added by Xiaonan to include Matlab code
+\usepackage{caption}    % changed to caption / should still work
+\usepackage{tocloft}    % added by Mark for TOC names
+\usepackage{textcomp}
+\setcounter{tocdepth}{4}
+\setcounter{secnumdepth}{4}
+
+%References & bibliography - add your own .bib files with \addbibresource command
+\usepackage[backend=bibtex,style=numeric-comp,sorting=none]{biblatex}   % Disabled Sorting - Mark
+\DeclareBibliographyAlias{webpage}{online}  %ignore warnings
+\addbibresource{bibliography.bib}
+
+\AtBeginDocument{\let\latexlabel\label}
+
+\titleformat{\chapter}[hang]
+{\normalfont\huge\bfseries}{\thechapter}{17.5pt}{\huge}
+\titlespacing*{\chapter}{0pt}{-40pt}{0pt}
+\titlespacing*{\section}{0pt}{0pt}{0pt}
+\titlespacing*{\subsection}{0pt}{0pt}{0pt}
+\titlespacing*{\subsubsection}{0pt}{0pt}{0pt}   %reduce spacing to fit with other stuff
+
+%Remove the Page number from the part pages - Mark
+\makeatletter
+\renewcommand\part{%
+    \if@openright
+    \cleardoublepage
+    \else
+    \clearpage
+    \fi
+    \thispagestyle{empty}%   % Original »plain« replaced by »emptyx
+    \addtocounter{page}{-1} %Decrease the page counter so the part page doesn't count, added by Mark
+    \if@twocolumn
+    \onecolumn
+    \@tempswatrue
+    \else
+    \@tempswafalse
+    \fi
+    \null\vfil
+    \secdef\@part\@spart}
+\makeatother
+% From http://tex.stackexchange.com/questions/54115/how-to-let-part-stay-solo-page-and-no-page-number
+
+
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+% All sqrts closed
+\LetLtxMacro{\oldsqrt}{\sqrt}
+\renewcommand{\sqrt}[1][]{%
+    \def\DHLindex{#1}\mathpalette\DHLhksqrt}
+\def\DHLhksqrt#1#2{%
+    \setbox0=\hbox{$#1\oldsqrt[\DHLindex]{#2\,}$}\dimen0=\ht0
+    \advance\dimen0-0.2\ht0
+    \setbox2=\hbox{\vrule height\ht0 depth -\dimen0}%
+    {\box0\lower0.71pt\box2}}
+
+\makeatletter
+\newcommand*\@dblLabelI {}
+\newcommand*\@dblLabelII {}
+\newcommand*\@dblequationAux {}
+
+\def\@dblequationAux #1,#2,%
+{\def\@dblLabelI{\label{#1}}\def\@dblLabelII{\label{#2}}}
+
+\newcommand*{\doubleequation}[3][]{%
+    \par\vskip\abovedisplayskip\noindent
+    \if\relax\detokenize{#1}\relax
+    \let\@dblLabelI\@empty
+    \let\@dblLabelII\@empty
+    \else % we assume here that the optional argument
+    % has the required shape A,B
+    \@dblequationAux #1,%
+    \fi
+    \makebox[0.5\linewidth-1.5em]{%
+        \hspace{\stretch2}%
+        \makebox[0pt]{$\displaystyle #2$}%
+        \hspace{\stretch1}%
+    }%
+    \makebox[0.5\linewidth-1.5em]{%
+        \hspace{\stretch1}%
+        \makebox[0pt]{$\displaystyle #3$}%
+        \hspace{\stretch2}%
+    }%
+    \makebox[3em][r]{(%
+        \refstepcounter{equation}\theequation\@dblLabelI,
+        \refstepcounter{equation}\theequation\@dblLabelII)}%
+    \par\vskip\belowdisplayskip
+}
+\makeatother
+\renewcommand{\headrulewidth}{0pt}
+
+% For multi-line cells - see http://tex.stackexchange.com/questions/2441/how-to-add-a-forced-line-break-inside-a-table-cell
+\newcommand{\multicell}[2][c]{%
+    \begin{tabular}[#1]{@{}c@{}}#2\end{tabular}}
+
+\setlength{\headheight}{13.6pt}
+
+
+%Toc indents and dimensions
+\setlength{\cftsecindent}{1.5em}
+\setlength{\cftsecnumwidth}{2.8em}
+
+\setlength{\cftsubsecindent}{4.0em}
+\setlength{\cftsubsecnumwidth}{3.6em}
+
+\setlength{\cftsubsubsecindent}{7.4em}
+\setlength{\cftsubsubsecnumwidth}{4.5em}
+
+\usepackage{hyperref}
+
+\pretitle{%
+    \begin{center}
+        %\LARGE
+        \includegraphics[width=4.5cm]{Images/cover.jpg}\\ \Huge%[\bigskipamount]
+    }
+    \posttitle{\end{center}}
+
+% Title Page
+\title{Analysis of Activity Data from Smartphones}
+\author{Jamieson Brynes, Somerville College}
+
+
+%Table of contents command by Mark
+% use \setauthor{<name>} just before the chapter/section/subsection heading you want to assign to <name>
+%for example:
+%\setauthor{Mark}
+%\chapter{Optical Tweezing}
+%
+%Also, you can put whatever you want to appear on the left in the toc in square brackets.
+%for example:
+%\chapter[OT]{Optical Tweezing} will be printed as OT in the table of contents
+
+\makeatletter
+\renewcommand{\@pnumwidth}{2.3em}
+\newcommand{\setauthor}[1]{%
+    \addtocontents{toc}{\protect\@namedef{authortag}{#1}}%
+}
+
+\newcommand{\putafterpnum}{%
+    \ifcsname authortag\endcsname
+    \makebox[0pt][r]{\smash{\colorbox{white}{\strut\authortag}\hspace{\@pnumwidth}}}%
+    \global\let\authortag\relax
+    \fi
+}
+
+\renewcommand{\cftchapafterpnum}{\putafterpnum}
+\renewcommand{\cftsecafterpnum}{\putafterpnum}
+\renewcommand{\cftsubsecafterpnum}{\putafterpnum}
+\renewcommand{\cftsubsubsecafterpnum}{\putafterpnum}
+
+\makeatother
+
+\begin{document}
+
+\maketitle
+\pagestyle{fancy}
+
+\include{Text/abstract}
+\include{Text/introduction}
+
+\end{document}

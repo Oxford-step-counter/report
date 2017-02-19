@@ -1,0 +1,10 @@
+*.aux
+*.pdf
+*.gz
+*.log
+*.out
+*.xml
+*.toc
+*.thm
+
+report-blx.bib

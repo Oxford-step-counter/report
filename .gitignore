@@ -6,5 +6,6 @@
 *.xml
 *.toc
 *.thm
+*.asv
 
 report-blx.bib

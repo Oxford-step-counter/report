@@ -2,25 +2,25 @@
 
     \chapter{Overview}
 
-        This section shall cover the development and workings of the step counter algorithm. The algorithm aims to extract incidences of steps from the raw accelerometer data from a mobile phone. An example of raw accelerometer data of walking is shown below in Figure \ref{img_accel_ex}. It should be quite clear that the act of walking gives rise to periodic activity with a period corresponding to a single step. The act of walking is detailed in Naqvi, et. al. [CIT] and is as follows:
+        This section covers the development and evaluation of the step counter algorithm. The algorithm aims to extract incidences of steps from the raw accelerometer data recorded on a smartphone. An example of raw accelerometer data of walking is shown below in Figure \ref{img_accel_ex}. It should be quite clear that the act of walking gives rise to periodic activity with a period corresponding to a single step. The act of walking is detailed in Naqvi, et. al. [CIT] and is as follows:
 
         \begin{enumerate}
             \item At the beginning of the step, the planted foot is pushed backwards into the floor.
-            \item Static friction opposes this force, this provides the driving force forward.
+            \item Static friction opposes this force. This provides the driving force forward.
             \item At the end of the step the stepping foot is placed on the floor and pushes forward into the floor.
-            \item Again, static friction opposes this force, giving rise of to a backwards force.
+            \item Again, static friction opposes this force, giving rise to a backwards force.
         \end{enumerate}
 
         \begin{figure}[h]
             \includegraphics[width=\textwidth]{Images/accel_signal.eps}
             \centering
-            \caption{Example of an accelerometer signal over a 15 second period.}
+            \caption{Example of an accelerometer signal recorded during a period of walking.}
             \label{img_accel_ex}
         \end{figure}
 
-        It is clear that each step will have both a positive and negative peak associated with 2 and 4 respectively. This peak signature will be what the algorithm aims identified in the accelerometer signal. Effectively, the problem boils down to extreme peak detection in a noisy signal. 
+        It is clear that each step will have both a peak and a trough associated with 2 and 4 respectively. The algorithm shall identify the peaks in the accelerometer signal. Effectively, the problem is one of peak detection in a noisy signal. 
 
-        The algorithm is split into 5 stages, each responsible for a particular function in the algorithm. The data will flow from stage to stage much like how a product may move through a pipeline in a factory. All stages have an input queue and output queue, with the exception of the final stage which only has an input queue. At each stage, the data will be adjusted or modified and the algorithm will yield detected steps. A block diagram of this is shown below in Figure \ref{img_sc_block}. Each one of these stages will be described in detail in the following section.
+        The algorithm is split into five stages, each responsible for a particular function. The data flows from stage to stage. All stages have an input data stream and output data stream, with the exception of the final stage which only has an input data stream. A block diagram is shown below in Figure \ref{img_sc_block}. Each one of the five stages will be described in detail in the following section.
 
         \begin{figure}[h]
             \includegraphics[width=\textwidth]{Images/step_counter_block.png}
@@ -29,7 +29,7 @@
             \label{img_sc_block}
         \end{figure}
 
-    \chapter{Algorithm In-Depth}
+    \chapter{Algorithm Description}
 
         \section{Pre-Processing Stage}
 
@@ -40,62 +40,145 @@
                 \item Ensuring a constant sampling frequency by means of linear interpolation.
             \end{enumerate}
 
-            The first step is very straightforward, the magnitude of the signal is computed and the time is zero scaled and put in proper units. The accelerometer data is received in the tri-axial format, but we are interested in the magnitude rather than any single directional component because we do not know the physical orientation of the device. The time should also be scaled appropriately so that the first sample received from the user initiating the algorithm is $t = 0$. The time stamps of the samples are provided in nanoseconds and not given in standard UTC format, but as the time since system boot. The equations for these operations are simple and are as follows:
+            The accelerometer data is received in the tri-axial format, however the algorithm is concerned with the magnitude rather than any single directional component because the the physical orientation of the device is unknown. The time stamps of the samples should also be scaled appropriately so that the first sample received from the user initiating the algorithm is at $t = 0$. The time stamps of the samples are provided in nanoseconds and are not given in standard UTC format, but as the time since system boot. The equations for these operations are simple and are as follows:
 
             \begin{equation}
-                m_i = \sqrt{a_{ix}^2 + a_{iy}^2 + a_{iz}^2}
+                m = \sqrt{a_{x}^2 + a_{y}^2 + a_{z}^2},
             \end{equation}
 
             \begin{equation}
-                t_{adjusted} = t_i - t_0
+                t_{i,adjusted} = \frac{t_i - t_0}{t_s},
             \end{equation}
+
+            where $m$ is the magnitude of the acceleration signal, $a_{x}$ is the acceleration in the x direction, $a_{y}$ is the acceleration in the y direction, $a_{z}$ is the acceleration in the z direction, $t_{i,adjusted}$ is the adjusted time stamp for the i-th sample, $t_i$ is the time stamp for the i-th sample, $t_0$ is the first time stamp in the trace, and $t_s$ is the time-scaling factor. For example, converting from nanoseconds to milliseconds, $t_s = 10^6$. 
 
             The data is then inserted into a simple data structure and is appended to an internal buffer of size 2. When this buffer is full, we will interpolate between these two points. The reason interpolation is needed is that although the developer can specific a desired sample rate in the Android application, there is no guarantee that the accelerometer will be sampled at this rate. An example of this is shown below in Figure \ref{img_sampling_freq} where time between samples is plotted against samples. For the filtering stage, we need to ensure that the data is sampled at a constant rate.
 
+            The algorithm knows what the desired sample rate is, and will interpolate at this value. For example, if the sample rate is set to $f = 100 Hz$, then the algorithm will interpolate around $t = 0, 10, 20, 30, ... ms$. Each interpolated point is appended to the end of the stage's output data stream. The pseudocode for the linear interpolation is shown below.
 
-
-            The algorithm knows what the desired sample rate is, and will interpolate at this value. For example, if the sample rate is set to $f = 100Hz$, then the algorithm will interpolate around $t = 0, 10, 20, 30, ... ms$. Each interpolated point is appended to the end of the stage's output queue. The pseudocode for the linear interpolation is shown below.
-
-            \begin{lstlisting}
-time_interval = 10; //ms
-count = 0;
-while(running):
-    if buf is full:
-        // Check how many possible interpolated points exist in our interval.
-        potential_points = ceil((buf[1].time - buf[0].time) / time_interval);
-        for i in range(potential_points):
-            if buf[0] <= count * time_interval <= buf[1]:
-                // The next interpolated point exists here in this interval
-                yield interpolatedPoint(buf[0], buf[1], count * time_interval);
-                count++;
-        // Get rid of the oldest point
-        buf.remove(0)
-            \end{lstlisting}
-
-            The maths behind the interpolatedPoint(...) function will be produced below for completeness.
+            The equation for linear interpolation is as follows:
 
             \begin{equation}
-                value = \frac{p_{1,value} - p_{0,value}}{t_{1,value} - t_{0,value}} t_{interpolated} + p_{0,value}
+                value = \frac{y_1 - y_0}{t_1 - t_0} t_{int} + y_0,
             \end{equation}
+
+            where the two points that are being interpolated between are given by: $(t_1, y_1)$ and $(t_0, y_0)$, and the time to be interpolated at is given by $t_{int}$.
 
             \begin{figure}[h]
                 \includegraphics[width=\textwidth]{Images/sampling_freq.eps}
                 \centering
-                \caption{Time differences between samples for a 100Hz sampled signal.}
+                \caption{Time differences between samples for a 100Hz sampled signal. Note that the non-constant sampling times leads to the requirement for interpolation.}
                 \label{img_sampling_freq}
             \end{figure}
 
         \section{Filtering Stage}
 
-            The Filtering Stage has one primary function, smooth the signal and remove as much of the high frequency noise from the accelerometer signal.
+            The function of the filtering stage is to smooth the signal by removing as much of the high frequency noise from the acceleromater as possible.
 
-            The mechanism behind this is a simple FIR, finite impulse response, low-pass digital filter. Ideally, this would be a hard-low pass filter with a frequency response described by [FIG] below. However, this is impossible to achieve due to the infinite impulse response in the time domain (top-hats transform to sinc functions). A few filters were implemented for testing for performance:
+            The filter required is a simple finite impulse response (FIR), low-pass digital filter. Ideally, this would be a steep-low pass filter with a frequency response described by Figure \ref{img_ideal_filter} below. However, this is impossible to achieve due to the infinite impulse response in the time domain (top-hat transforms to the sinc function). In order to capture the a variety of walking speeds, the cutoff of these filters will aim to be around 3 Hz. This should be sufficient to capture the walking of even the speediest walkers, as this would translate to an pace of $5.4 mph$ according to the ratio of $2000 steps = 1 mile$ as given by the American College of Sports Medicine [CIT]. Note that the average walking pace was found to be $3.1 mph$ in a study by Knoblauch, et. al. [CIT].
 
-            \begin{itemize}
-                \item Centered Moving Average - the simplest filter here, the coefficients are simply given by $h_k = \frac{1}{L}$.
-                \item Gaussian Window - a slightly more complicated filter, this uses a modified Gaussian function to determine the coefficients.
-            \end{itemize}
-            [IMG]
+
+
+            A few filters were implemented for performance testing.
+
+            \subsection{Moving Average}
+
+                This is a very simple filter, each point in the filter window are weighted equally such that:
+
+                \begin{equation}
+                    m_k = \frac{1}{N},
+                \end{equation}
+
+                where $m_k$ is the $k^{th}$ filter coefficient, and $N$ is the length of the filter. The frequency response of this filter is shown below in Figure \ref{img_cm_filter}.
+
+                \begin{figure}[!th]
+                    \includegraphics[width=\textwidth]{Images/cm_filter.eps}
+                    \centering
+                    \caption{Frequency response of the moving average filter with $N=31$.}
+                    \label{img_cm_filter}
+                \end{figure}
+
+            \subsection{Gaussian Filter}
+
+                This is a more complex filter, using a Gaussian as the waveform for the filter coefficients. This filter attempts to suppress the sidelobes of the center moving average filter by having a smoother transition to 0 magnitude. The weights of the filter are given by:
+
+                \begin{equation}
+                    g_k = \exp(-\frac{1}{2}(\frac{k - \frac{N-1}{2}}{\sigma \frac{N-1}{2}})^2),
+                \end{equation}
+
+                where $g_k$ is the $k^{th}$ coefficient of the filter, $N$ is the length of the filter window, and $\sigma$ is a parameter defining the standard deviation of the Gaussian. Note that the standard deviation also scales with the length of the filter. The frequency response of this filter is shown below in Figure \ref{img_ga_filter}.
+
+                \begin{figure}[!th]
+                    \includegraphics[width=\textwidth]{Images/ga_filter.eps}
+                    \centering
+                    \caption{Frequency response of the Gaussian filter with $N=51$ and $\sigma = 0.35$.}
+                    \label{img_ga_filter}
+                \end{figure}
+
+            \subsection{Hann Filter}
+
+                This is a similar filter to that of the Gaussian, where it attempts to smooth out the response by suppressing the sidelobes of the center moving average filter. The weights of the filter are derived from the Hann window [CIT] and are as follows: 
+
+                \begin{equation}
+                    h_k = \frac{1}{2}(1 - \cos(\frac{2\pi k}{N - 1}))
+                \end{equation}
+
+                where $h_k$ is the $k^{th}$ filter coefficient and $N$ is the length of the filter window. The frequency response of this filter is shown below in Figure \ref{img_ha_filter}.
+
+                \begin{figure}[!th]
+                    \includegraphics[width=\textwidth]{Images/ha_filter.eps}
+                    \centering
+                    \caption{Frequency response of the Hann filter with $N=51$.}
+                    \label{img_ha_filter}
+                \end{figure}  
+
+            \subsection{Kaiser-Bessel Filter}
+
+                This is the most complex filter design, designed by Kaiser [CIT] in order to achieve the desired attenutation at the cutoff frequency. It combines the ideal filter response (note a sinc function in the time domain) and a Bessel window to achieve the result. The calculation of the coeffcients are as follows.
+
+                First, calculate the window shape parameter $\alpha$. 
+
+                \begin{equation}
+                    \alpha = 
+                        \begin{cases}
+                            0.1102(A - 8.7) & A \ge 50 \\
+                            0.5842(A-21)^{0.4} + 0.07886(A-21) & 21 \leq A \geq 50 \\
+                            0 & A \le 21
+                        \end{cases},
+                \end{equation}
+
+                where $A$ is the desired attenuation at the cutoff frequency.
+
+                Then calculate the coefficients of the Kaiser-Bessel window:
+
+                \begin{equation}
+                w_k = \frac{I_0(\alpha \sqrt{1 - (\frac{k - N_p}{N_p})^2})}{I_0(\alpha)},
+                \end{equation}
+
+                where $w_k$ is the $k^{th}$ coefficient of the window, $\alpha$ is the window shape parameter, $N_p$ is the midpoint of the filter, $N_p = \frac{N-1}{2}$ where $N$ is the length of the filter, and $I_0$ is the $0^{th}$ order Bessel function of the first kind.
+
+                Then calculate the coefficients of the ideal filter response:
+
+                \begin{equation}
+                i_k = \frac{\sin(2\pi k\frac{F_c}{F_s})}{\pi k},
+                \end{equation}
+
+                where $i_k$ is the $k^{th}$ coefficient of the ideal filter response, $F_c$ is the desired cutoff frequency and $F_s$ is the sampling frequency.
+
+                Finally, compute the coefficients of the filter with: 
+
+                \begin{equation}
+                b_k = w_ki_k,
+                \end{equation}
+
+                where $b_k$ is the $k^{th}$ coefficient of the Kaiser-Bessel filter response. The frequency response of this filter is shown below in Figure \ref{img_kb_filter}.
+
+                \begin{figure}[!th]
+                    \includegraphics[width=\textwidth]{Images/kb_filter.eps}
+                    \centering
+                    \caption{Frequency response of the Kaiser-Bessel filter with $N=51$, $A=60dB$, $F_c = 3Hz$, and $F_s= 100Hz$.}
+                    \label{img_kb_filter}
+                \end{figure}  
 
         \section{Scoring Stage}
 

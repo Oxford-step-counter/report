@@ -6,25 +6,29 @@
 
         \section{Six Minute Walk Test}
 
+        \section{Smartphones}
+
     \chapter{Objectives}
 
         \section{Step Counter}
 
-            In order for patients to accurately measure their performance on the 6MWT, a generalized step counting algorithm must be available on a smartphone device. More modern smartphones often incorporate step counters on device, but older devices still lack this functionality. Furthermore, the mechanism and accuracy of these step counters are not publicly available. 
+            In order to track 6MWT performance on a smartphones, a generalized step counting algorithm must be available on those devices. More modern smartphones often incorporate step counters on device, but older devices still lack this functionality. Furthermore, the mechanism of these step counters are not publicly available.
 
-            To overcome these limitations, a generalized algorithm will be developed to count steps for the 6MWT using solely the accelerometer signal from a smartphone. As accelerometer signals are often very noisy, this algorithm must be robust to noise and capable of accuracies upward of 90\%. Additionally, this algorithm should be performant enough to run in realtime on a smartphone device.
+            To overcome these limitations, a generalized algorithm will be developed to count steps for the 6MWT using solely the accelerometer signal from a smartphone. As accelerometer signals are often very noisy, this algorithm must be robust to noise and capable accuracies sufficiently high to enable meaningful analysis of the results. Additionally, this algorithm should be computationally efficient so as to run in realtime on a smartphone device.
 
-            The performance of this algorithm will be validated against the ground truth data collected by a proprietary device, described later in this report. The quantity of interest is the total number of steps, false positives and false negatives are not considered in this case.
+            The performance of this algorithm will be validated against the ground truth data collected by a proprietary device, described later in this report. The metric of interest is the total number of steps over a given time period. This report shall not discuss the false positive rate, the rate at which the algorithm identifies a step when there isn't one, or the false negative rate, the rate at which the algorithm does not identify a step when there is one, of the algorithm.
 
         \section{Sleep Detection}
 
-            The other component necessary to the project is an accurate sleep detector. While it is unlikely that accelerometer driven sleep detectors will reach the accuracies achieved by the gold standard, polysomnography, they represent a very cheap alternative that can provide a rough estimate of sleep onset and duration.
+            The other component necessary to the project is an accurate sleep detector. While it is unlikely that accelerometer driven sleep detectors will reach the classification accuracy achieved by the gold standard, polysomnography, they represent a very cheap alternative that can provide a rough estimate of sleep onset and duration. Polysomnography is a study that is done on a patient, typically to diagnose sleep disorders. The patient undergoing polysomnography has their brain waves, oxygen levels in the blood, heart rate, breathing, eye movement, and leg movement recorded. The data is later analysed by a trained professional, who produces a dataset relating how the patient transitions between sleep stages (deep sleep, REM, awake) during the night.
 
-            The feasibility of such algorithms has been demonstrated with consumer products such as those sold by Fitbit. The accuracy of such devices are unknown, and so the algorithm developed here represents a transparent attempt at classifying sleep with wrist mounted accelerometers.
+            The feasibility of such algorithms has been demonstrated with consumer products such as those sold by Fitbit. The algorithm and methodology behind these commercial trackers are unknown, and so the algorithm developed here represents a transparent attempt at classifying sleep with wrist-mounted accelerometers.
 
-            This algorithm seeks to discern the sleep onset time, the time at which the user falls asleep, and wakeful onset time, the time at which the user wakes up, using the accelerometer signal provided by a wrist mounted smart device such as the Apple Watch. 
+            This algorithm seeks to discern the sleep onset time, the time at which the user falls asleep, and wakefulness onset time, the time at which the user wakes up, using the accelerometer signal provided by a wrist mounted smart device such as the Apple Watch.
 
-            The performance of this algorithm will be compared to polysomnography records provided by [CIT], as well validated against other similar devices such as a Fitbit or smartphone applications like Sleep as Android.
+            In order to develop and validate the algorithm, a database produced by the Embedded Sensing Systems Group at TU Darmstadt was used [CIT]. This database contains both the actigraphy traces and annotated polysomnography for 42 sleep lab patients.
+
+            The performance will also be tested against similar devices such as a Fitbit device [CIT] or the Sleep As Android application [CIT]. 
 
 
     \chapter{Literature Review}
@@ -75,11 +79,5 @@
                     This algorithm uses a fusion of frequency and time based methods. The signal is first transformed into the frequency domain using a wavelet transform. All the frequency content outside the 'walking band' is removed, and the remaining signal is transformed back into the time domain.
 
                     The steps are then counted using the mean crossing technique discussed above, without the smoothing filter.
-
-            \subsection{Machine Learning Algorithms}
-
-                \subsubsection{Hidden Markov Model}
-
-                \subsubsection{K-Means Clustering}
 
         \section{Sleep Detection Algorithms}

@@ -197,7 +197,9 @@
 
                 This method uses the local neighbors of the point in question to determine how peaky the point is. It will look $N$ points to the left and determines the maximum difference between the point in question and those points. It will do the same for the $N$ points to the right, and then average the two maximum differences as the result.
 
-                This operation will result in exaggerating peaks corresponding to steps as the following trough will cause a higher magnitude relative to peaks corresponding to other causes. An example of the output from a filtered signal to the scored signal using Maximum Difference is shown below in Figure \ref{max_diff_score}
+                This operation will result in exaggerating peaks corresponding to steps as the following trough will cause a higher magnitude relative to peaks corresponding to other causes. An example of the output from a filtered signal to the scored signal using Maximum Difference is shown below in Figure \ref{max_diff_score}.
+
+                The equation describing this behavior is given by:
 
                 \begin{equation}
                 x = \frac{\max\limits_k{(x_i - x_{i-k})} + \max\limits_k{(x_i - x_{i+k})}}{2},
@@ -218,11 +220,13 @@
 
                 An example of the output from a filtered signal to the scored signal using Mean Difference is shown below in Figure \ref{mean_diff_score}.
 
+                The equation describing this behavior is given by:
+
                 \begin{equation}
                 x = \frac{\sum_{k=-N, k\neq i}^{N} (x_i - x_{i+k})}{2N},
                 \end{equation}
 
-                where $i$ is the point under consideration and $N$ is the characteristic length of the Mean Difference operation.
+                where $i$ is the point under consideration, $x_n$ is the value of the signal at the $n^{th}$ sample, and $N$ is the characteristic length of the Mean Difference operation.
 
                 \begin{figure}[!th]
                     \includegraphics[width=\textwidth]{Images/mean_diff_score.png}

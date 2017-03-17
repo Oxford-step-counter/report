@@ -263,6 +263,42 @@
 
         \section{Detection Stage}
 
+            The next stage in the process is to identify potential candidates for peaks associated with peaks. This is done using statistics to identify outliers. 
+
+            As the algorithm traverses the signal, it keeps track of a running mean and standard deviation. Computationally efficient way of doing this incrementally are as shown below:
+
+            \begin{equation}
+                \bar{x}_n = \frac{x_n + (n-1)\bar{x}_{n-1}}{n},
+            \end{equation}
+
+            \begin{equation}
+                \sigma_n^2 = \frac
+                {(n-2)\sigma_{n-1}^2 + (n-1)(\bar{x}_{n-1} -\bar{x}_n)^2 + (x - \bar{x}_n)^2}
+                {n-1},
+            \end{equation}
+
+            where $x_n$ is the $n^{th}$ sample, $\bar{x}_n$ is the running mean at the $n^{th}$ sample, and $\sigma_n$ is the running standard deviation at the $n^{th}$ sample.
+
+            The algorithm will then use these two quantities to determine whether any given point is an outlier by thresholding. That is to say, if a point is $c$ or more running standard deviations above the running mean, then it is marked as a potential peak.
+
+            \begin{equation}
+                \frac{x_n - \bar{x}_n}{\sigma_n} \stackrel{?}{\geq} c,
+            \end{equation}
+
+            where $c$ is the designated threshold.
+
+            An example of the results of this method is shown below in Figure \ref{img_detection_stage}.
+
+            Note that the algorithm skips a number of points at the beginning as it builds up a running mean and standard deviation. Unfortuntely, this means that, almost always, the first peak it encounters will be marked as a potential step.
+
+            \begin{figure}[!th]
+                \includegraphics[width=\textwidth]{Images/detection_stage.png}
+                \centering
+                \caption{The results of the Peak Detection stage. Top Left: filtered signal, Top-Right: scored signal, Bottom-Left: filtered signal with potential peaks overlaid in green. $c=1.2$ for the Peak Detection stage.}
+                \label{img_detection_stage}
+            \end{figure}
+
+
         \section{Post-Processing Stage}
 
     \chapter{Data Collection Apparatus}

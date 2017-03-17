@@ -77,7 +77,14 @@
 
             The filter required is a simple finite impulse response (FIR), low-pass digital filter. Ideally, this would be a steep-low pass filter with a frequency response described by Figure \ref{img_ideal_filter} below. However, this is impossible to achieve due to the infinite impulse response in the time domain (top-hat transforms to the sinc function). In order to capture the a variety of walking speeds, the cutoff of these filters will aim to be around 3 Hz. This should be sufficient to capture the walking of even the speediest walkers, as this would translate to an pace of $5.4 mph$ according to the ratio of $2000 steps = 1 mile$ as given by the American College of Sports Medicine [CIT]. Note that the average walking pace was found to be $3.1 mph$ in a study by Knoblauch, et. al. [CIT].
 
+            An example of the prefiltered signal and the filtered signal is shown below in Figure \ref{img_filtered_signal}.
 
+            \begin{figure}[h]
+                \includegraphics[width=\textwidth]{Images/filtered_signal.png}
+                \centering
+                \caption{Example of a signal being filtered. Filter used: Gaussian Filter with $N=51$ and $\sigma=0.35$. Note the large peaks due to noise are filtered out entirely.}
+                \label{img_filtered_signal}
+            \end{figure}
 
             A few filters were implemented for performance testing.
 
@@ -181,6 +188,74 @@
                 \end{figure}  
 
         \section{Scoring Stage}
+
+            The function of the scoring stage is to evaluate how 'peaky' any given point is. The result of this stage should increase the the magnitude of peak points, making them more obvious to a peak detector.
+
+            A few methods were developed to be used in testing. These are detailed below.
+
+            \subsection{Maximum Difference}
+
+                This method uses the local neighbors of the point in question to determine how peaky the point is. It will look $N$ points to the left and determines the maximum difference between the point in question and those points. It will do the same for the $N$ points to the right, and then average the two maximum differences as the result.
+
+                This operation will result in exaggerating peaks corresponding to steps as the following trough will cause a higher magnitude relative to peaks corresponding to other causes. An example of the output from a filtered signal to the scored signal using Maximum Difference is shown below in Figure \ref{max_diff_score}
+
+                \begin{equation}
+                x = \frac{\max\limits_k{(x_i - x_{i-k})} + \max\limits_k{(x_i - x_{i+k})}}{2},
+                \end{equation}
+
+                where $i$ is the point under consideration, and $x_n$ is the value of the signal at the $n^{th}$ sample.
+
+                \begin{figure}[!th]
+                    \includegraphics[width=\textwidth]{Images/max_diff_score.png}
+                    \centering
+                    \caption{Peak Scoring using Maximum Difference with $N=6$. Filtered data is on the left, smoothed data is on the right. Note how the large peaks are amplified, while the smaller ones are suppressed.}
+                    \label{max_diff_score}
+                \end{figure}                 
+
+            \subsection{Mean Difference}
+
+                This method is similar to Maximum Difference, except that instead of taking the maximum of the difference to the left and the right, Mean Difference takes the mean of all the differences. The effect is similar to Maximum Difference, but smaller in magnitude. It also preserves the overall shape of the waveform.
+
+                An example of the output from a filtered signal to the scored signal using Mean Difference is shown below in Figure \ref{mean_diff_score}.
+
+                \begin{equation}
+                x = \frac{\sum_{k=-N, k\neq i}^{N} (x_i - x_{i+k})}{2N},
+                \end{equation}
+
+                where $i$ is the point under consideration and $N$ is the characteristic length of the Mean Difference operation.
+
+                \begin{figure}[!th]
+                    \includegraphics[width=\textwidth]{Images/mean_diff_score.png}
+                    \centering
+                    \caption{Peak Scoring using Mean Difference with $N=10$. Filtered data is on the left, scored data is on the right.}
+                    \label{mean_diff_score}
+                \end{figure}
+
+            \subsection{Modified Pan-Tompkins Scoring}
+
+                This method is a derivative from the famous algorithm by Pan and Tompkins [CIT] that was used for peak detection. 
+
+                The original algorithm had four main steps: digital bandpass filter, differentiate the signal, square the signal, then a moving integration window to reconstitute the signal.
+
+                From this baseline, a modified algorithm was developed:
+
+                \begin{itemize}
+                    \item Locally zero-mean the data around with a window of size $N$.
+                    \item Set all the data points that are less than 0 to zero.
+                    \item Square the data to amplify any large peaks.
+                \end{itemize}
+
+                The first step is integral as it ensures that when the data is squared, only truly large peaks get amplified. The second step is important to ensure that only positive peaks get detected. Without this, the algorithm would detect both the peak and trough.
+
+                An example of this scoring using this method is shown below in Figure \ref{pan_tompkins_score}.
+
+                \begin{figure}[!th]
+                    \includegraphics[width=\textwidth]{Images/pan_tompkins_score.png}
+                    \centering
+                    \caption{Peak Scoring using Modified Pan-Tompkins with $N=10$. Filtered data is on the left, scored data is on the right.}
+                    \label{pan_tompkins_score}
+                \end{figure}
+
 
         \section{Detection Stage}
 

@@ -333,6 +333,40 @@ for (Point candidate in points) {
 
     \chapter{Data Collection Apparatus}
 
+        A dataset with ground truth data must be acquired in order to optimize and validate the algorithm. The algorithm is only interested in the overall accuracy over periods of time, so a simple total count of steps is all that is required. However, in order to open up the versatility of the dataset and enable future improvements of the algorithm, a dataset was collected that would also contain the information for timestamps of the steps with the ground truth. Note that the total count of steps can easily be obtained from this more detailed dataset. 
+
+        Previous studies, such as [CIT], used video annotation to determine the time stamps of steps, but this is time intensive and prone to error and human inaccuracy. In order to accurately determine this information, a custom device had to be designed and built.
+
+        \section{Custom Design}
+
+            The device is designed to record steps with some sort of sensor attached to the shoe. The sensors are connected to an RFduino, which is a Bluetooth-enabled Arduino microcontroller board. The RFduino will poll the sensor for information and broadcast it over Bluetooth Low Energy to an Android smartphone, discussed later. 
+
+            The first iteration of the device used push buttons mounted on straps that would be strapped around the vamp of the shoe, covering the ball of the user's foot. These push buttons would be connected to the RFduino with a simple pull down resistor, such that logic level 0 indicates that the push button is up and the user's foot is up and logic level 1 indicates that the push button is down and the user's foot is down. A picture of the push button mounted on the straps can be seen below in Figure \ref{img_device_og} along with a picture of the device in use in Figure \ref{img_device_og_use}.
+
+            \begin{figure}[!th]
+                \includegraphics[width=0.6\textwidth]{Images/device_og.jpg}
+                \centering
+                \caption{A picture of the original data collection device design. Note the push button in the middle of the pink strap. The contact area was reinforced with cardboard in an attempt to increase robustness.}
+                \label{img_device_og}
+            \end{figure}
+
+            \begin{figure}[!th]
+                \includegraphics[width=0.6\textwidth]{Images/device_og_use.jpg}
+                \centering
+                \caption{A picture of the original data collection device in use. Notice the placement of the straps on the user's shoes.}
+                \label{img_device_og_use}
+            \end{figure}
+
+            Unfortunately, this iteration of the device was subject to a number of problems regarding robustness. The device worked well when functional, but it suffered from the breaking of the push buttons due to excessive force. The pins of the push buttons also broke a number of times as they were folded flat against the strap due to the weight of the user. Clearly, a more robust design was required.
+
+            The second iteration of the design dropped the push buttons entirely and moved to a method that relied on having a pressure sensitive resistor sit under the heel of the user inside the shoe. 
+
+        \section{Android Application}
+
+        \section{Dataset}
+
+
+
     \chapter{Algorithm Optimization}
 
     \chapter{Results}

@@ -20,7 +20,7 @@
 
         It is clear that each step will have both a peak and a trough associated with 2 and 4 respectively. The algorithm shall identify the peaks in the accelerometer signal. Effectively, the problem is one of peak detection in a noisy signal. 
 
-        The algorithm is split into five stages, each responsible for a particular function. The data flows from stage to stage. All stages have an input data stream and output data stream, with the exception of the final stage which only has an input data stream. A block diagram is shown below in Figure \ref{img_sc_block}. Each one of the five stages will be described in detail in the following section.
+        The algorithm is split into five stages, each responsible for a particular function. The data flows from stage to stage. All stages have an input data stream and output data stream, with the exception of the final stage which only has an input data stream. A block diagram is shown below in Figure \ref{img_sc_block}. Each one of the five stages will be described in detail in the following section. Note that throughout the description there will be options or parameters for each stage; this is intentional, as this allows an optimization routine to be ran on the algorithm to determine the best set of parameters for overall accuracy. 
 
         \begin{figure}[h]
             \includegraphics[width=\textwidth]{Images/step_counter_block.png}
@@ -197,7 +197,7 @@
 
                 This method uses the local neighbors of the point in question to determine how peaky the point is. It will look $N$ points to the left and determines the maximum difference between the point in question and those points. It will do the same for the $N$ points to the right, and then average the two maximum differences as the result.
 
-                This operation will result in exaggerating peaks corresponding to steps as the following trough will cause a higher magnitude relative to peaks corresponding to other causes. An example of the output from a filtered signal to the scored signal using Maximum Difference is shown below in Figure \ref{max_diff_score}.
+                This operation will result in exaggerated peaks corresponding to steps as the following trough will cause a higher magnitude relative to peaks corresponding to other causes. An example of the output from a filtered signal to the scored signal using Maximum Difference is shown below in Figure \ref{max_diff_score}.
 
                 The equation describing this behavior is given by:
 
@@ -298,8 +298,38 @@
                 \label{img_detection_stage}
             \end{figure}
 
-
         \section{Post-Processing Stage}
+
+            The final stage of the algorithm is to collect the potential peaks from the previous stage and clean these such that only the true peaks remain. In Figure \ref{img_detection_stage}, all of the potential peak points are clustered on the rise to the peak, this stage should remove all the erroneous points and leave only the maximum of each peak. This stage also makes use of the fact that the peaks associated with walking are usually periodic with a minimum delay between them. Note this delay is related to the speed of walking.
+
+            This stage moves a window of a fixed size across the potential peaks and only keeps the maximum point in the window. This effectively removes all the points leading up to the peak while preserving the peak. By tuning the window size, the algorithm can ensure that for most cases no two steps will reside in this window at the same time. This window was set to $200ms$ which translates to a maximum walking speed of $5 steps/sec$, far faster than average walking pace.
+
+            The pseudocode for such an operation would be like the following:
+
+            \begin{lstlisting}
+int windowSize = 200; // In ms
+Point currentMax;
+// Iterate through the sorted list of points
+for (Point candidate in points) {
+    if (candidate.time - currentMax.time > windowSize) {
+        // The currentMax point is now outside the window. 
+        yield currentMax;
+        currentMax = candidate;
+    } else {
+        // Keep the maximum point.
+        currentMax = (currentMax.value > candidate.value) ? currentMax : candidate;
+    }
+}
+            \end{lstlisting}
+
+            The result of this simple operation retains the peak points while throwing away the points surrounding the peak, this is exactly the intended behavior. An example of this can be seen in \ref{img_post_stage}.
+
+            \begin{figure}[!th]
+                \includegraphics[width=\textwidth]{Images/post_stage.png}
+                \centering
+                \caption{The results of the Post-Processing Stage. Output of the Detection Stage is on the left, output of the Post-Processing Stage is on the right. Note how the set of points surrounding the peaks have been filtered out.}
+                \label{img_post_stage}
+            \end{figure}
 
     \chapter{Data Collection Apparatus}
 

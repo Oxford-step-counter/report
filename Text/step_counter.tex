@@ -346,26 +346,59 @@ for (Point candidate in points) {
             \begin{figure}[!th]
                 \includegraphics[width=0.6\textwidth]{Images/device_og.jpg}
                 \centering
-                \caption{A picture of the original data collection device design. Note the push button in the middle of the pink strap. The contact area was reinforced with cardboard in an attempt to increase robustness.}
+                \caption{A picture of the original ground truth device design. Note the push button in the middle of the pink strap. The contact area was reinforced with cardboard in an attempt to increase robustness.}
                 \label{img_device_og}
             \end{figure}
 
             \begin{figure}[!th]
                 \includegraphics[width=0.6\textwidth]{Images/device_og_use.jpg}
                 \centering
-                \caption{A picture of the original data collection device in use. Notice the placement of the straps on the user's shoes.}
+                \caption{A picture of the original ground truth device in use. Notice the placement of the straps on the user's shoes such that the push button would be positioned roughly under the ball of the foot.}
                 \label{img_device_og_use}
             \end{figure}
 
             Unfortunately, this iteration of the device was subject to a number of problems regarding robustness. The device worked well when functional, but it suffered from the breaking of the push buttons due to excessive force. The pins of the push buttons also broke a number of times as they were folded flat against the strap due to the weight of the user. Clearly, a more robust design was required.
 
-            The second iteration of the design dropped the push buttons entirely and moved to a method that relied on having a pressure sensitive resistor sit under the heel of the user inside the shoe. 
+            The second iteration of the design dropped the push buttons entirely and moved to a method that relied on having a pressure sensitive resistor sit under the heel of the user inside the shoe. To ensure that this resistor is tolerant and sensitive to the relatively high pressures in this use case, the device used a material called velostat as the variable resistor. Velostat, used primiarly as a packaging material, is "made of polymeric foil impregnated with carbon black to make it electrically conductive" [CIT]. The resistance is reduced when pressure is applied, hence when current flow is high, the foot is down. The new device was made by taping conductive thread to either side of the velostat, completing the circuit. A picture of the new device can be seen in Figure \ref{img_device_new}.
+
+            \begin{figure}[!th]
+                \includegraphics[width=0.6\textwidth]{Images/device_new.jpg}
+                \centering
+                \caption{The new ground truth device. Note the conductive thread visible through the tape and the electrical tape used to keep the two threads electrical isolated. The straps would now be put around the user's ankles.}
+                \label{img_device_new}
+            \end{figure}
+
+            The firmware on the RFduino uses a moving threshold to determine the on-off switch point. The threshold for each sensor is calculated by retaining a history of the minimum and maximum values of each sensor, and then taking the midpoint of the min and max. Every 5 seconds, the minimum and maximum are penalised such as to ensure that exceptionally low or high results long ago do not fix the min and max for the entire trace. A graph representing the raw data from the sensors plotted against the thresholds is shown below in Figure \ref{img_device_new_graph}.
+
+            \begin{figure}[!th]
+                \includegraphics[width=0.8\textwidth]{Images/device_new_graph.png}
+                \centering
+                \caption{The raw data captured by the new ground truth device. Note how the steps are clearly discernable and the moving threshold correctly classifies the two states. The difference in magnitude for each signal is explained by the natural variation in velostat pads.}
+                \label{img_device_new_graph}
+            \end{figure}         
+
 
         \section{Android Application}
 
+            To capture the accelerometer data and the ground truth simultaneously, an Android application had to written to accomodate this functionality. It had to:
+
+            \begin{itemize}
+                \item Capture accelerometer data at a high rate (at least 100Hz) and save to a file.
+                \item Connect via Bluetooth Low Energy to the ground truth device, decode the signal, and save the data to a file with synchronized timestamps with respect to the accelerometer data.
+                \item Provide a simple method of retrieving this data off the device.
+                \item Provide a simple UI for the user to capture all of this data efficiently.
+            \end{itemize}
+
+            For expendiency's sake, application was designed such that the data would be zipped and compressed together and uploaded to a remote server via HTTP POST. This enabled the user to record mulitple data recordings after one another without needing to manually retrieve the files off the device.
+
+
         \section{Dataset}
 
+            As the algorithm should be able to run well over a myriad of scenarios, a dataset was collected that aimed to encapsulate as many of these scenarios as possible. The dataset features 3 people collecting data with a variety of heights and weights, 3 phones to ensure that similar devices performed similarly, and 6 phone 'positions': in a hand, in a front pocket, in a back pocket, in an armband, in a shoulder purse, and in a neck pouch on a lanyard. 
 
+            This resulted in a dataset containing 48 distinct traces, each with approximately $2.5$ minutes of accelerometer and ground truth data. This dataset should provide a good range of scenarios for optimization such that the final algorithm parameters will be the best performing averaged over a variety of scenarios. It also opens the possibility of specific parameter combinations that provide very high accuracy for a specific scenario. 
+
+            In addition, 3 data traces were collected from current patients in the ?? without the ground truth device data for post-optimization validation. The total step counted was instead hand counted by a trainer professional present at the recording.
 
     \chapter{Algorithm Optimization}
 

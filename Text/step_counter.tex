@@ -302,7 +302,7 @@
 
             The final stage of the algorithm is to collect the potential peaks from the previous stage and clean these such that only the true peaks remain. In Figure \ref{img_detection_stage}, all of the potential peak points are clustered on the rise to the peak, this stage should remove all the erroneous points and leave only the maximum of each peak. This stage also makes use of the fact that the peaks associated with walking are usually periodic with a minimum delay between them. Note this delay is related to the speed of walking.
 
-            This stage moves a window of a fixed size across the potential peaks and only keeps the maximum point in the window. This effectively removes all the points leading up to the peak while preserving the peak. By tuning the window size, the algorithm can ensure that for most cases no two steps will reside in this window at the same time. This window was set to $200ms$ which translates to a maximum walking speed of $5 steps/sec$, far faster than average walking pace.
+            This stage moves a window of a fixed size, $t_{window}$, across the potential peaks and only keeps the maximum point in the window. This effectively removes all the points leading up to the peak while preserving the peak. By tuning the window size, the algorithm can ensure that for most cases no two steps will reside in this window at the same time. This window was set to $200ms$ which translates to a maximum walking speed of $5 steps/sec$, far faster than average walking pace.
 
             The pseudocode for such an operation would be like the following:
 
@@ -401,6 +401,87 @@ for (Point candidate in points) {
             In addition, 3 data traces were collected from current patients in the ?? without the ground truth device data for post-optimization validation. The total step counted was instead hand counted by a trainer professional present at the recording.
 
     \chapter{Algorithm Optimization}
+
+        Now that the algorithm and it's parameters have been described and that the dataset and the method by which it was collected was described, the optimization of the algorithm can be described. This can be generalized as a maxization problem where the domain of the problem is defined by the parameter space. The only certain way of getting a guaranteed maximum is to run a search across the parameter space. Each stage may have parameters associated with it, and these parameters may change depending on the stage selection (choice of filter, scoring technique). 
+
+        In order to keep the running time of the optimization routine to a reasonable limit, this parameter search will need to be fairly rough to limit the number of parameter permutations. By manually testing extremes of the parameters, the set of parameters to test can be reduced to a more reasonable set. The final set can be seen in the tables below. Note that the first stage, Pre-Processing, has been held constant at $t_{scale}=10^6$ and $f_{int}=100Hz$. The Post-Processing stage has also been held constant at $t_{window}=200ms$. 
+
+
+        \begin{center}
+            \captionof{table}{The parameter set for the Filtering Stage.}
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                Parameter & Minimum & Step & Maximum \\
+                \hline
+                \multicolumn{4}{|c|}{\textbf{Moving Average Filter}} \\
+                \hline
+                Window Size ($N$) & 13 & 8 & 53 \\
+                \hline
+                \multicolumn{4}{|c|}{\textbf{Hann Filter}} \\
+                \hline
+                Window Size ($N$) & 13 & 8 & 53 \\
+                \hline
+                \multicolumn{4}{|c|}{\textbf{Gaussian Filter}} \\
+                \hline
+                Window Size ($N$) & 13 & 8 & 53 \\
+                Standard Deviation ($\sigma$) & 0.35 & Fixed & 0.35 \\
+                \hline
+                \multicolumn{4}{|c|}{\textbf{Kaiser-Bessel Filter}} \\
+                \hline
+                Window Size ($N$) & 13 & 8 & 53 \\
+                Sampling Frequency ($f_s$) & 100Hz & Fixed & 100Hz \\
+                Cutoff Frequency ($f_c$) & 3Hz & Fixed & 3Hz \\
+                Drop At $f_c$ ($A$) & 60dB & Fixed & 60dB \\
+                \hline
+            \end{tabular}
+        \end{center}
+
+        \begin{center}
+            \captionof{table}{The parameter set for the Scoring Stage.}
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                Parameter & Minimum & Step & Maximum \\
+                \hline
+                \multicolumn{4}{|c|}{\textbf{Maximum Difference}} \\
+                \hline
+                Window Size ($N$) & 3 & 8 & 51 \\
+                \hline
+                \multicolumn{4}{|c|}{\textbf{Mean Difference}} \\
+                \hline
+                Window Size ($N$) & 3 & 8 & 51 \\
+                \hline
+                \multicolumn{4}{|c|}{\textbf{Modified Pan Tompkins}} \\
+                \hline
+                Window Size ($N$) & 11 & 8 & 51 \\
+                \hline
+                \multicolumn{4}{|c|}{\textbf{No Scoring Method}} \\
+                \hline
+                \multicolumn{4}{|c|}{No Parameters} \\
+                \hline
+            \end{tabular}
+        \end{center}
+        \begin{center}
+            \captionof{table}{The parameter set for the Detection Stage.}
+            \begin{tabular}{|c|c|c|c|}
+                \hline
+                Parameter & Minimum & Step & Maximum \\
+                \hline
+                Standard Deviation Threshold ($c$) & 1.2 & 0.2 & 1.4 \\
+                \hline
+            \end{tabular}
+        \end{center}
+
+        These parameter variations give the total number of permutations at 1008. Each of these parameter sets will be tested on all 48 data recordings listed in the previous section. The results will be averaged across all data recordings for each permutation to give a general accuracy rating. This will be the variable upon which the optimal set will be decided. 
+
+        However, since there are approximately $2$ hours of data to run through the algorithm, each permutation test takes a bit of time. Specifically, on a machine with an Intel i5-6200u, it takes about $5$ minutes for each. This means that if this optimization were to run solely on that machine, it would take $3.5$ days to complete! 
+
+        The solution to this problem is to build a distributed computing platform such that the computing load can be spread across multiple workers. To ensure that each parameter set only gets computed once, there will be a central server that is in charge of distributing parameter sets to each of the workers. 
+
+        This backend server was built on Flask [CIT], a microframework for Python, and served over gunicorn [CIT], a Python WSGI (Web Server Gateway Interface) HTTP webserver. The data would be passed back and forward via JSON. The backend would also store the results in a Postgres SQL (Structured Query Language) database [CIT] such that the results can be queried easily.
+
+        Each worker would have an implementation of the algorithm and the dataset locally. The worker will query the backend for a new set of parameters, and fetch the JSON of these with an HTTP GET request. When the computation is completed, the worker will append the results to the JSON file and return it via an HTTP POST request to the backend. It would then request a new set of parameters, until all permutations have been exhausted.
+
+        In this instance, Google Cloud Compute [CIT] was used to spin up 8 workers to run the algorithm, such that the runtime of the routine was cut down to around 11 hours. This is much more manageable and reasonable!
 
     \chapter{Results}
 

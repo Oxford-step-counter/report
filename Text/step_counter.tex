@@ -404,11 +404,12 @@ for (Point candidate in points) {
 
         Now that the algorithm and it's parameters have been described and that the dataset and the method by which it was collected was described, the optimization of the algorithm can be described. This can be generalized as a maxization problem where the domain of the problem is defined by the parameter space. The only certain way of getting a guaranteed maximum is to run a search across the parameter space. Each stage may have parameters associated with it, and these parameters may change depending on the stage selection (choice of filter, scoring technique). 
 
-        In order to keep the running time of the optimization routine to a reasonable limit, this parameter search will need to be fairly rough to limit the number of parameter permutations. By manually testing extremes of the parameters, the set of parameters to test can be reduced to a more reasonable set. The final set can be seen in the tables below. Note that the first stage, Pre-Processing, has been held constant at $t_{scale}=10^6$ and $f_{int}=100Hz$. The Post-Processing stage has also been held constant at $t_{window}=200ms$. 
+        In order to keep the running time of the optimization routine to a reasonable limit, this parameter search will need to be fairly rough to limit the number of parameter permutations. By manually testing extremes of the parameters, the set of parameters to test can be reduced to a more reasonable set. The final set can be seen in Tables \ref{tbl_filtering}, \ref{tbl_scoring}, \ref{tbl_detection}. Note that the first stage, Pre-Processing, has been held constant at $t_{scale}=10^6$ and $f_{int}=100Hz$. The Post-Processing stage has also been held constant at $t_{window}=200ms$. 
 
 
         \begin{center}
             \captionof{table}{The parameter set for the Filtering Stage.}
+            \label{tbl_filtering}
             \begin{tabular}{|c|c|c|c|}
                 \hline
                 Parameter & Minimum & Step & Maximum \\
@@ -438,6 +439,7 @@ for (Point candidate in points) {
 
         \begin{center}
             \captionof{table}{The parameter set for the Scoring Stage.}
+            \label{tbl_scoring}
             \begin{tabular}{|c|c|c|c|}
                 \hline
                 Parameter & Minimum & Step & Maximum \\
@@ -462,6 +464,7 @@ for (Point candidate in points) {
         \end{center}
         \begin{center}
             \captionof{table}{The parameter set for the Detection Stage.}
+            \label{tbl_detection}
             \begin{tabular}{|c|c|c|c|}
                 \hline
                 Parameter & Minimum & Step & Maximum \\
@@ -485,4 +488,196 @@ for (Point candidate in points) {
 
     \chapter{Results}
 
+        \section{Optimal Parameters}
+
+            The best set of parameters given by the optimization routine given above achieved an average accuracy of 93.7\% across the 48 data recordings. The parameters that achieve this accuracy is given by Table \ref{tbl_opt_params}.
+
+            \begin{center}
+                \captionof{table}{The parameters for the optimal algorithm performance.}
+                \label{tbl_opt_params}
+                \begin{tabular}{|c|c|c|}
+                    \hline
+                    Stage & Type & Parameters \\
+                    \hline
+                    Pre-Processing & Default & $t_{scale}=10^6$, $f_{int}=100Hz$ \\
+                    Filtering & Gaussian & $N=13$, $\sigma=0.35$ \\
+                    Scoring & Mean Difference & $N=27$ \\
+                    Detection & Default & $c=1.2$ \\
+                    Post-Processing & Default & $t_{window}=200ms$ \\
+                    \hline
+                \end{tabular}
+            \end{center}
+
+            The spread of the accuracy results can be seen below in Figure \ref{img_opt_params_overall}. This shows that the majority of the accuracy results is within the 90\% to 100\% range with some outliers showing significantly lower accuracy.
+
+            \begin{figure}[!th]
+                \includegraphics[width=0.8\textwidth]{Images/opt_params_overall.eps}
+                \centering
+                \caption{The spread of the accuracy of the optimal parameters over the 48 data recordings.}
+                \label{img_opt_params_overall}
+            \end{figure}
+
+            If the results are split by the position the phone was in when the data was recorded, the source of these outliers can be seen. These plots can be seen below in Figure \ref{img_opt_params_positions_bp}.
+
+            \begin{figure}[!th]
+                \includegraphics[width=0.8\textwidth]{Images/opt_params_positions_bp.eps}
+                \centering
+                \caption{The spread of the accuracy of the optimal parameters over the 48 data recordings grouped by phone position. The far outliers overwhelmingly come from the 'In Hand' position.}
+                \label{img_opt_params_positions_bp}
+            \end{figure}
+
+            As can be seen from Figure \ref{img_opt_params_positions_bp}, the outliers come primarily from the 'In Hand' or 'Purse' positions. This leads to the hypothesis that these positions may induce some harmonics in the walking frequency range that are destructive to the signal from stepping. The source of this may be the user swinging their arm when holding the phone or the purse swinging back and forth under arm.
+
+            This grouping also reveals that the 'Back Pocket', 'Arm Band', and 'Neck Pouch' positions seem to be the best positions for the algorithm. It should be noted that the 'Arm Band' may be subject to the same harmonics as the 'In Hand' position, however, the relatively limited movement of the upper arm when compared to the hand limits the impact of these harmonics.
+
+            These parameters can now be validated against the three patient data recordings mentioned earlier too. If the accuracies are similar to the average, then it supports the idea that these parameters are good for a generalized algorithm.
+
+            The results of running these data recordings are detailed below in Table \ref{tbl_patient_results}. The average accuracy of these three tracks is 92.3\%. This is very close to the average accuracy recorded from the 48 data recordings and well within the median quartiles in the boxplot.
+
+            \begin{center}
+                \captionof{table}{The results of the optimal parameters for the three patient data recordings.}
+                \label{tbl_patient_results}
+                \begin{tabular}{|c|c|c|c|}
+                    \hline
+                    Label & Recorded Number of Steps & Algorithm Output & Accuracy \\
+                    \hline
+                    Patient 1 & 614 & 654 & 93.5\% \\ 
+                    Patient 2 & 567 & 605 & 93.2\% \\
+                    Patient 3 & 682 & 749 & 90.2\% \\
+                    \hline
+                \end{tabular}
+            \end{center}
+
+        \section{Position Specific Parameters}
+
+            The investigations above reveals an interesting fact: set of parameters perform differently on different positions. This leads to the idea that the algorithm may be able to swap between parameters given the position of the phone to give the best result. For each position, a set of optimal parameters will be specified. That is to say, if the data is restricted to the data recordings corresponding to just those that have the phone in a given position, which set of parameters give the best performance. This analysis leads to extremely high accuracies for some positions and parameters.
+
+            \subsection{In Hand}
+
+                The best set of parameters for the 'In Hand' position gives an overall accuracy of 92.4\%. The parameters that achieve this are laid out in Table \ref{tbl_params_in_hand}.
+
+                \begin{center}
+                    \captionof{table}{The parameters for the optimal algorithm performance in the 'In Hand' position.}
+                    \label{tbl_params_in_hand}
+                    \begin{tabular}{|c|c|c|}
+                        \hline
+                        Stage & Type & Parameters \\
+                        \hline
+                        Pre-Processing & Default & $t_{scale}=10^6$, $f_{int}=100Hz$ \\
+                        Filtering & Moving Average & $N=53$ \\
+                        Scoring & Mean Difference & $N=11$ \\
+                        Detection & Default & $c=1.4$ \\
+                        Post-Processing & Default & $t_{window}=200ms$ \\
+                        \hline
+                    \end{tabular}
+                \end{center}
+
+            \subsection{Front Pocket}
+
+                The best set of parameters for the 'Front Pocket' position gives an overall accuracy of 98.0\%. The parameters that achieve this are laid out in Table \ref{tbl_params_front_pocket}.
+
+                \begin{center}
+                    \captionof{table}{The parameters for the optimal algorithm performance in the 'Front Pocket' position.}
+                    \label{tbl_params_front_pocket}
+                    \begin{tabular}{|c|c|c|}
+                        \hline
+                        Stage & Type & Parameters \\
+                        \hline
+                        Pre-Processing & Default & $t_{scale}=10^6$, $f_{int}=100Hz$ \\
+                        Filtering & Moving Average & $N=29$ \\
+                        Scoring & Mean Difference & $N=27$ \\
+                        Detection & Default & $c=1.2$ \\
+                        Post-Processing & Default & $t_{window}=200ms$ \\
+                        \hline
+                    \end{tabular}
+                \end{center}  
+
+            \subsection{Back Pocket}
+
+                The best set of parameters for the 'Back Pocket' position gives an overall accuracy of 99.2\%. The parameters that achieve this are laid out in Table \ref{tbl_params_back_pocket}.
+
+                \begin{center}
+                    \captionof{table}{The parameters for the optimal algorithm performance in the 'Back Pocket' position.}
+                    \label{tbl_params_back_pocket}
+                    \begin{tabular}{|c|c|c|}
+                        \hline
+                        Stage & Type & Parameters \\
+                        \hline
+                        Pre-Processing & Default & $t_{scale}=10^6$, $f_{int}=100Hz$ \\
+                        Filtering & Gaussian & $N=21$, $\sigma=0.35$ \\
+                        Scoring & No Scoring & \\
+                        Detection & Default & $c=1.2$ \\
+                        Post-Processing & Default & $t_{window}=200ms$ \\
+                        \hline
+                    \end{tabular}
+                \end{center}
+
+            \subsection{Arm Band}
+
+                The best set of parameters for the 'Arm Band' position gives an overall accuracy of 99.4\%. The parameters that achieve this are laid out in Table \ref{tbl_params_arm_band}.
+
+                \begin{center}
+                    \captionof{table}{The parameters for the optimal algorithm performance in the 'Arm Band' position.}
+                    \label{tbl_params_arm_band}
+                    \begin{tabular}{|c|c|c|}
+                        \hline
+                        Stage & Type & Parameters \\
+                        \hline
+                        Pre-Processing & Default & $t_{scale}=10^6$, $f_{int}=100Hz$ \\
+                        Filtering & Moving Average & $N=21$ \\
+                        Scoring & Max Difference & $N=3$ \\
+                        Detection & Default & $c=1.2$ \\
+                        Post-Processing & Default & $t_{window}=200ms$ \\
+                        \hline
+                    \end{tabular}
+                \end{center}
+
+            \subsection{Neck Pouch}
+
+                The best set of parameters for the 'Neck Pouch' position gives an overall accuracy of 98.9\%. The parameters that achieve this are laid out in Table \ref{tbl_params_neck_pouch}.
+
+                \begin{center}
+                    \captionof{table}{The parameters for the optimal algorithm performance in the 'Neck Pouch' position.}
+                    \label{tbl_params_neck_pouch}
+                    \begin{tabular}{|c|c|c|}
+                        \hline
+                        Stage & Type & Parameters \\
+                        \hline
+                        Pre-Processing & Default & $t_{scale}=10^6$, $f_{int}=100Hz$ \\
+                        Filtering & Moving Average & $N=21$ \\
+                        Scoring & Mean Difference & $N=11$ \\
+                        Detection & Default & $c=1.2$ \\
+                        Post-Processing & Default & $t_{window}=200ms$ \\
+                        \hline
+                    \end{tabular}
+                \end{center}
+
+            \subsection{Purse}
+
+                The best set of parameters for the 'Purse' position gives an overall accuracy of 96.9\%. The parameters that achieve this are laid out in Table \ref{tbl_params_purse}.
+
+                \begin{center}
+                    \captionof{table}{The parameters for the optimal algorithm performance in the 'Purse' position.}
+                    \label{tbl_params_purse}
+                    \begin{tabular}{|c|c|c|}
+                        \hline
+                        Stage & Type & Parameters \\
+                        \hline
+                        Pre-Processing & Default & $t_{scale}=10^6$, $f_{int}=100Hz$ \\
+                        Filtering & Moving Average & $N=29$ \\
+                        Scoring & Mean Difference & $N=11$ \\
+                        Detection & Default & $c=1.2$ \\
+                        Post-Processing & Default & $t_{window}=200ms$ \\
+                        \hline
+                    \end{tabular}
+                \end{center}    
+
+
+
     \chapter{Further Work}
+
+        There are a few things that can be expanded upon and explored given the database collected and the infrastructure built. 
+
+        Since the data for the time stamps of the steps exists in the data, one direction of exploration would be to analyse how many steps the algorithm actually identifies correctly or how many steps the algorithm misses. This is equivalent to a false positive/false negative analysis. This information could provide further information about tuning the algorithm. 
+
+        Another area that can be explored is a finer tuned optimization. The search done in this paper had fairly large step sizes in many of the parameters. The results above could be treated as an indicator of a true maximum locally and using the infrastructure developed, run a finer grained search over the parameter search to yield the true maximum.

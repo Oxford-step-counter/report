@@ -2,23 +2,9 @@
 
     \chapter{Overview}
 
-        This section covers the development and evaluation of the step counter algorithm. The algorithm aims to extract incidences of steps from the raw accelerometer data recorded on a smartphone. An example of raw accelerometer data of walking is shown below in Figure \ref{img_accel_ex}. It should be quite clear that the act of walking gives rise to periodic activity with a period corresponding to a single step. The act of walking is detailed in Naqvi, et. al. [CIT] and is as follows:
+        This section covers the development and evaluation of the step counter algorithm. The algorithm aims to extract incidences of steps from the raw accelerometer data recorded on a smartphone. Effectively, the problem is one of peak detection in a noisy signal.
 
-        \begin{enumerate}
-            \item At the beginning of the step, the planted foot is pushed backwards into the floor.
-            \item Static friction opposes this force. This provides the driving force forward.
-            \item At the end of the step the stepping foot is placed on the floor and pushes forward into the floor.
-            \item Again, static friction opposes this force, giving rise to a backwards force.
-        \end{enumerate}
-
-        \begin{figure}[h]
-            \includegraphics[width=\textwidth]{Images/accel_signal.eps}
-            \centering
-            \caption{Example of an accelerometer signal recorded during a period of walking.}
-            \label{img_accel_ex}
-        \end{figure}
-
-        It is clear that each step will have both a peak and a trough associated with 2 and 4 respectively. The algorithm shall identify the peaks in the accelerometer signal. Effectively, the problem is one of peak detection in a noisy signal. 
+        The basis of this algorithm was adapted from the windowed peak detection algorithm described by Palshakir [CIT].
 
         The algorithm is split into five stages, each responsible for a particular function. The data flows from stage to stage. All stages have an input data stream and output data stream, with the exception of the final stage which only has an input data stream. A block diagram is shown below in Figure \ref{img_sc_block}. Each one of the five stages will be described in detail in the following section. Note that throughout the description there will be options or parameters for each stage; this is intentional, as this allows an optimization routine to be ran on the algorithm to determine the best set of parameters for overall accuracy. 
 
@@ -75,7 +61,7 @@
 
             The function of the filtering stage is to smooth the signal by removing as much of the high frequency noise from the acceleromater as possible.
 
-            The filter required is a simple finite impulse response (FIR), low-pass digital filter. Ideally, this would be a steep-low pass filter with a frequency response described by Figure \ref{img_ideal_filter} below. However, this is impossible to achieve due to the infinite impulse response in the time domain (top-hat transforms to the sinc function). In order to capture the a variety of walking speeds, the cutoff of these filters will aim to be around 3 Hz. This should be sufficient to capture the walking of even the speediest walkers, as this would translate to an pace of $5.4 mph$ according to the ratio of $2000 steps = 1 mile$ as given by the American College of Sports Medicine [CIT]. Note that the average walking pace was found to be $3.1 mph$ in a study by Knoblauch, et. al. [CIT].
+            The filter required is a simple finite impulse response (FIR), low-pass digital filter. Ideally, this would be a steep low-pass filter. However, this is impossible to achieve due to the infinite impulse response in the time domain (top-hat transforms to the sinc function). In order to capture a variety of walking speeds, the cutoff of these filters will aim to be around 3 Hz. This should be sufficient to capture the walking of even the speediest walkers, as this would translate to an pace of $5.4 mph$ according to the ratio of $2000 steps = 1 mile$ as given by the American College of Sports Medicine [CIT]. Note that the average walking pace was found to be $3.1 mph$ in a study by Knoblauch, et. al. [CIT].
 
             An example of the prefiltered signal and the filtered signal is shown below in Figure \ref{img_filtered_signal}.
 
@@ -107,7 +93,7 @@
 
             \subsection{Gaussian Filter}
 
-                This is a more complex filter, using a Gaussian as the waveform for the filter coefficients. This filter attempts to suppress the sidelobes of the center moving average filter by having a smoother transition to 0 magnitude. The weights of the filter are given by:
+                This is a more complex filter, using a Gaussian as the filter coefficients. This filter attempts to suppress the sidelobes of the center moving average filter by having a smoother transition to 0 magnitude. The weights of the filter are given by:
 
                 \begin{equation}
                     g_k = \exp(-\frac{1}{2}(\frac{k - \frac{N-1}{2}}{\sigma \frac{N-1}{2}})^2),
@@ -189,7 +175,7 @@
 
         \section{Scoring Stage}
 
-            The function of the scoring stage is to evaluate how 'peaky' any given point is. The result of this stage should increase the the magnitude of peak points, making them more obvious to a peak detector.
+            The function of the scoring stage is to evaluate how 'peaky' any given point is. The result of this stage should increase the magnitude of peak points, making them more obvious to a peak detector.
 
             A few methods were developed to be used in testing. These are detailed below.
 
@@ -197,7 +183,7 @@
 
                 This method uses the local neighbors of the point in question to determine how peaky the point is. It will look $N$ points to the left and determines the maximum difference between the point in question and those points. It will do the same for the $N$ points to the right, and then average the two maximum differences as the result.
 
-                This operation will result in exaggerated peaks corresponding to steps as the following trough will cause a higher magnitude relative to peaks corresponding to other causes. An example of the output from a filtered signal to the scored signal using Maximum Difference is shown below in Figure \ref{max_diff_score}.
+                This operation will result in enhanced peaks corresponding to steps as the following trough will cause a higher magnitude relative to peaks corresponding to other causes. An example of the output from a filtered signal to the scored signal using Maximum Difference is shown below in Figure \ref{max_diff_score}.
 
                 The equation describing this behavior is given by:
 
@@ -279,10 +265,10 @@
 
             where $x_n$ is the $n^{th}$ sample, $\bar{x}_n$ is the running mean at the $n^{th}$ sample, and $\sigma_n$ is the running standard deviation at the $n^{th}$ sample.
 
-            The algorithm will then use these two quantities to determine whether any given point is an outlier by thresholding. That is to say, if a point is $c$ or more running standard deviations above the running mean, then it is marked as a potential peak.
+            The algorithm will then use these two quantities to determine whether any given point is an outlier by thresholding. That is to say, if a point is $c$ or more running standard deviations above the running mean, then it is marked as a potential peak. That is to say, if it satisfies the equation below, it is a potential peak.
 
             \begin{equation}
-                \frac{x_n - \bar{x}_n}{\sigma_n} \stackrel{?}{\geq} c,
+                \frac{x_n - \bar{x}_n}{\sigma_n}\geq c,
             \end{equation}
 
             where $c$ is the designated threshold.
@@ -333,15 +319,15 @@ for (Point candidate in points) {
 
     \chapter{Data Collection Apparatus}
 
-        A dataset with ground truth data must be acquired in order to optimize and validate the algorithm. The algorithm is only interested in the overall accuracy over periods of time, so a simple total count of steps is all that is required. However, in order to open up the versatility of the dataset and enable future improvements of the algorithm, a dataset was collected that would also contain the information for timestamps of the steps with the ground truth. Note that the total count of steps can easily be obtained from this more detailed dataset. 
+        A dataset with ground truth data must be acquired in order to optimize and validate the algorithm. The algorithm is only interested in the overall accuracy over periods of time, so the total count of steps is all that is required. However, in order to open up the versatility of the dataset and enable future improvements of the algorithm, a dataset was collected that would also contain the information for timestamps of the steps with the ground truth. Note that the total count of steps can easily be obtained from this more detailed dataset. 
 
         Previous studies, such as [CIT], used video annotation to determine the time stamps of steps, but this is time intensive and prone to error and human inaccuracy. In order to accurately determine this information, a custom device had to be designed and built.
 
         \section{Custom Design}
 
-            The device is designed to record steps with some sort of sensor attached to the shoe. The sensors are connected to an RFduino, which is a Bluetooth-enabled Arduino microcontroller board. The RFduino will poll the sensor for information and broadcast it over Bluetooth Low Energy to an Android smartphone, discussed later. 
+            The device is designed to record steps with a sensor attached to the shoe. The sensors are connected to an RFduino, which is a Bluetooth-enabled Arduino microcontroller board. The RFduino will poll the sensor for information and broadcast it over Bluetooth Low Energy to an Android smartphone, discussed later. 
 
-            The first iteration of the device used push buttons mounted on straps that would be strapped around the vamp of the shoe, covering the ball of the user's foot. These push buttons would be connected to the RFduino with a simple pull down resistor, such that logic level 0 indicates that the push button is up and the user's foot is up and logic level 1 indicates that the push button is down and the user's foot is down. A picture of the push button mounted on the straps can be seen below in Figure \ref{img_device_og} along with a picture of the device in use in Figure \ref{img_device_og_use}.
+            A first iteration of the device used push buttons mounted on straps that would be strapped around the vamp of the shoe, covering the ball of the user's foot. These push buttons would be connected to the RFduino with a simple pull down resistor, such that logic level 0 indicates that the push button is up and the user's foot is up and logic level 1 indicates that the push button is down and the user's foot is down. A picture of the push button mounted on the straps can be seen below in Figure \ref{img_device_og} along with a picture of the device in use in Figure \ref{img_device_og_use}.
 
             \begin{figure}[!th]
                 \includegraphics[width=0.6\textwidth]{Images/device_og.jpg}
@@ -357,7 +343,7 @@ for (Point candidate in points) {
                 \label{img_device_og_use}
             \end{figure}
 
-            Unfortunately, this iteration of the device was subject to a number of problems regarding robustness. The device worked well when functional, but it suffered from the breaking of the push buttons due to excessive force. The pins of the push buttons also broke a number of times as they were folded flat against the strap due to the weight of the user. Clearly, a more robust design was required.
+            Unfortunately, this iteration of the device was subject to a number of problems regarding robustness. The device worked well when functional, but it suffered from the breaking of the push buttons due to excessive force. The pins of the push buttons also broke a number of times as they were folded flat against the strap due to the weight of the user.
 
             The second iteration of the design dropped the push buttons entirely and moved to a method that relied on having a pressure sensitive resistor sit under the heel of the user inside the shoe. To ensure that this resistor is tolerant and sensitive to the relatively high pressures in this use case, the device used a material called velostat as the variable resistor. Velostat, used primiarly as a packaging material, is "made of polymeric foil impregnated with carbon black to make it electrically conductive" [CIT]. The resistance is reduced when pressure is applied, hence when current flow is high, the foot is down. The new device was made by taping conductive thread to either side of the velostat, completing the circuit. A picture of the new device can be seen in Figure \ref{img_device_new}.
 
@@ -394,15 +380,15 @@ for (Point candidate in points) {
 
         \section{Dataset}
 
-            As the algorithm should be able to run well over a myriad of scenarios, a dataset was collected that aimed to encapsulate as many of these scenarios as possible. The dataset features 3 people collecting data with a variety of heights and weights, 3 phones to ensure that similar devices performed similarly, and 6 phone 'positions': in a hand, in a front pocket, in a back pocket, in an armband, in a shoulder purse, and in a neck pouch on a lanyard. 
+            As the algorithm should be able to run well over a number of scenarios, a dataset was collected that aimed to encapsulate as many of these scenarios as possible. The dataset features three participants collecting data with a variety of heights and weights, 3 phones to ensure that similar devices performed similarly, and 6 phone 'positions': in a hand, in a front pocket, in a back pocket, in an armband, in a shoulder purse, and in a neck pouch on a lanyard. In order to ensure generality, traces were collected on three different surfaces: grass/soil, hard floor (stone or linoleum), and carpeted floors as well as on three different phones: a Google Pixel, a Samsung ??, and a Google Nexus 5 device.
 
             This resulted in a dataset containing 48 distinct traces, each with approximately $2.5$ minutes of accelerometer and ground truth data. This dataset should provide a good range of scenarios for optimization such that the final algorithm parameters will be the best performing averaged over a variety of scenarios. It also opens the possibility of specific parameter combinations that provide very high accuracy for a specific scenario. 
 
-            In addition, 3 data traces were collected from current patients in the ?? without the ground truth device data for post-optimization validation. The total step counted was instead hand counted by a trainer professional present at the recording.
+            In addition, 3 data traces were collected from consenting patients participating to a clinical pilot study without the ground truth device data for post-optimization validation. The total step counted was instead hand counted by a trainer professional present at the recording.
 
     \chapter{Algorithm Optimization}
 
-        Now that the algorithm and it's parameters have been described and that the dataset and the method by which it was collected was described, the optimization of the algorithm can be described. This can be generalized as a maxization problem where the domain of the problem is defined by the parameter space. The only certain way of getting a guaranteed maximum is to run a search across the parameter space. Each stage may have parameters associated with it, and these parameters may change depending on the stage selection (choice of filter, scoring technique). 
+        Now that the algorithm and it's parameters have been described and that the dataset and the method by which it was collected was described, the optimization of the algorithm can be described. This can be generalized as a maxization problem where the domain of the problem is defined by the parameter space. The only certain way of getting a close to the true maximum is to run an exhasutive grid search across the parameter space. Each stage may have parameters associated with it, and these parameters may change depending on the stage selection (choice of filter, scoring technique). 
 
         In order to keep the running time of the optimization routine to a reasonable limit, this parameter search will need to be fairly rough to limit the number of parameter permutations. By manually testing extremes of the parameters, the set of parameters to test can be reduced to a more reasonable set. The final set can be seen in Tables \ref{tbl_filtering}, \ref{tbl_scoring}, \ref{tbl_detection}. Note that the first stage, Pre-Processing, has been held constant at $t_{scale}=10^6$ and $f_{int}=100Hz$. The Post-Processing stage has also been held constant at $t_{window}=200ms$. 
 
@@ -476,7 +462,7 @@ for (Point candidate in points) {
 
         These parameter variations give the total number of permutations at 1008. Each of these parameter sets will be tested on all 48 data recordings listed in the previous section. The results will be averaged across all data recordings for each permutation to give a general accuracy rating. This will be the variable upon which the optimal set will be decided. 
 
-        However, since there are approximately $2$ hours of data to run through the algorithm, each permutation test takes a bit of time. Specifically, on a machine with an Intel i5-6200u, it takes about $5$ minutes for each. This means that if this optimization were to run solely on that machine, it would take $3.5$ days to complete! 
+        However, since there are approximately $2$ hours of data to run through the algorithm, each permutation test takes a bit of time. Specifically, on a machine with an Intel i5-6200u, it takes about $5$ minutes for each. This means that if this optimization were to run solely on that machine, it would take $3.5$ days to complete.
 
         The solution to this problem is to build a distributed computing platform such that the computing load can be spread across multiple workers. To ensure that each parameter set only gets computed once, there will be a central server that is in charge of distributing parameter sets to each of the workers. 
 
@@ -484,13 +470,21 @@ for (Point candidate in points) {
 
         Each worker would have an implementation of the algorithm and the dataset locally. The worker will query the backend for a new set of parameters, and fetch the JSON of these with an HTTP GET request. When the computation is completed, the worker will append the results to the JSON file and return it via an HTTP POST request to the backend. It would then request a new set of parameters, until all permutations have been exhausted.
 
-        In this instance, Google Cloud Compute [CIT] was used to spin up 8 workers to run the algorithm, such that the runtime of the routine was cut down to around 11 hours. This is much more manageable and reasonable!
+        In this instance, Google Cloud Compute [CIT] was used to instantiate 8 workers to run the algorithm, such that the runtime of the routine was cut down to around 11 hours. This is much more manageable and reasonable.
 
     \chapter{Results}
 
+        \section{Variability in Surface and Phone}
+
+            The first thing to do with the set of results is to look at the differences between floor surfaces and phone devices. It is not expected that the device will have any impact as the accelerometers should record the same data.
+
+            \subsection{Surface}
+
+            \subsection{Phone}
+
         \section{Optimal Parameters}
 
-            The best set of parameters given by the optimization routine given above achieved an average accuracy of 93.7\% across the 48 data recordings. The parameters that achieve this accuracy is given by Table \ref{tbl_opt_params}.
+            The best set of parameters given by the optimization routine given above achieved an average accuracy of 93.7\% and a median accuracy of 96.8\% across the 48 data recordings. The parameters that achieve this accuracy is given by Table \ref{tbl_opt_params}.
 
             \begin{center}
                 \captionof{table}{The parameters for the optimal algorithm performance.}

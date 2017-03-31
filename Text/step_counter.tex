@@ -82,14 +82,7 @@
                     m_k = \frac{1}{N},
                 \end{equation}
 
-                where $m_k$ is the $k^{th}$ filter coefficient, and $N$ is the length of the filter. The frequency response of this filter is shown below in Figure \ref{img_cm_filter}.
-
-                \begin{figure}[!th]
-                    \includegraphics[width=\textwidth]{Images/cm_filter.eps}
-                    \centering
-                    \caption{Frequency response of the moving average filter with $N=31$.}
-                    \label{img_cm_filter}
-                \end{figure}
+                where $m_k$ is the $k^{th}$ filter coefficient, and $N$ is the length of the filter. The frequency response of this filter is shown below in Figure \ref{img_compare_filters}.
 
             \subsection{Gaussian Filter}
 
@@ -99,14 +92,7 @@
                     g_k = \exp(-\frac{1}{2}(\frac{k - \frac{N-1}{2}}{\sigma \frac{N-1}{2}})^2),
                 \end{equation}
 
-                where $g_k$ is the $k^{th}$ coefficient of the filter, $N$ is the length of the filter window, and $\sigma$ is a parameter defining the standard deviation of the Gaussian. Note that the standard deviation also scales with the length of the filter. The frequency response of this filter is shown below in Figure \ref{img_ga_filter}.
-
-                \begin{figure}[!th]
-                    \includegraphics[width=\textwidth]{Images/ga_filter.eps}
-                    \centering
-                    \caption{Frequency response of the Gaussian filter with $N=51$ and $\sigma = 0.35$.}
-                    \label{img_ga_filter}
-                \end{figure}
+                where $g_k$ is the $k^{th}$ coefficient of the filter, $N$ is the length of the filter window, and $\sigma$ is a parameter defining the standard deviation of the Gaussian. Note that the standard deviation also scales with the length of the filter. The frequency response of this filter is shown below in Figure \ref{img_compare_filters}.
 
             \subsection{Hann Filter}
 
@@ -116,14 +102,7 @@
                     h_k = \frac{1}{2}(1 - \cos(\frac{2\pi k}{N - 1}))
                 \end{equation}
 
-                where $h_k$ is the $k^{th}$ filter coefficient and $N$ is the length of the filter window. The frequency response of this filter is shown below in Figure \ref{img_ha_filter}.
-
-                \begin{figure}[!th]
-                    \includegraphics[width=\textwidth]{Images/ha_filter.eps}
-                    \centering
-                    \caption{Frequency response of the Hann filter with $N=51$.}
-                    \label{img_ha_filter}
-                \end{figure}  
+                where $h_k$ is the $k^{th}$ filter coefficient and $N$ is the length of the filter window. The frequency response of this filter is shown below in Figure \ref{img_compare_filters}. 
 
             \subsection{Kaiser-Bessel Filter}
 
@@ -164,13 +143,13 @@
                 b_k = w_ki_k,
                 \end{equation}
 
-                where $b_k$ is the $k^{th}$ coefficient of the Kaiser-Bessel filter response. The frequency response of this filter is shown below in Figure \ref{img_kb_filter}.
+                where $b_k$ is the $k^{th}$ coefficient of the Kaiser-Bessel filter response. The frequency response of this filter is shown below in Figure \ref{img_compare_filters}.
 
                 \begin{figure}[!th]
-                    \includegraphics[width=\textwidth]{Images/kb_filter.eps}
+                    \includegraphics[width=\textwidth]{Images/compare_filters.eps}
                     \centering
-                    \caption{Frequency response of the Kaiser-Bessel filter with $N=51$, $A=60dB$, $F_c = 3Hz$, and $F_s= 100Hz$.}
-                    \label{img_kb_filter}
+                    \caption{Frequency response of the four filters compared. Starting at top-left, working clockwise: Moving Average filter with $N=51$, Gaussian filter with $N=51$ and $\sigma=0.35$, Kaiser-Bessel filter with $N=51$, $A=60dB$, $F_c = 3Hz$, and $F_s= 100Hz$, and Hann filter with $N=51$}
+                    \label{img_compare_filters}
                 \end{figure}  
 
         \section{Scoring Stage}
@@ -183,7 +162,7 @@
 
                 This method uses the local neighbors of the point in question to determine how peaky the point is. It will look $N$ points to the left and determines the maximum difference between the point in question and those points. It will do the same for the $N$ points to the right, and then average the two maximum differences as the result.
 
-                This operation will result in enhanced peaks corresponding to steps as the following trough will cause a higher magnitude relative to peaks corresponding to other causes. An example of the output from a filtered signal to the scored signal using Maximum Difference is shown below in Figure \ref{max_diff_score}.
+                This operation will result in enhanced peaks corresponding to steps as the following trough will cause a higher magnitude relative to peaks corresponding to other causes. An example of the output from a filtered signal to the scored signal using Maximum Difference is shown below in Figure \ref{img_compare_scoring}.
 
                 The equation describing this behavior is given by:
 
@@ -192,19 +171,13 @@
                 \end{equation}
 
                 where $i$ is the point under consideration, and $x_n$ is the value of the signal at the $n^{th}$ sample.
-
-                \begin{figure}[!th]
-                    \includegraphics[width=\textwidth]{Images/max_diff_score.png}
-                    \centering
-                    \caption{Peak Scoring using Maximum Difference with $N=6$. Filtered data is on the left, smoothed data is on the right. Note how the large peaks are amplified, while the smaller ones are suppressed.}
-                    \label{max_diff_score}
-                \end{figure}                 
+              
 
             \subsection{Mean Difference}
 
                 This method is similar to Maximum Difference, except that instead of taking the maximum of the difference to the left and the right, Mean Difference takes the mean of all the differences. The effect is similar to Maximum Difference, but smaller in magnitude. It also preserves the overall shape of the waveform.
 
-                An example of the output from a filtered signal to the scored signal using Mean Difference is shown below in Figure \ref{mean_diff_score}.
+                An example of the output from a filtered signal to the scored signal using Mean Difference is shown below in Figure \ref{img_compare_scoring}.
 
                 The equation describing this behavior is given by:
 
@@ -214,12 +187,6 @@
 
                 where $i$ is the point under consideration, $x_n$ is the value of the signal at the $n^{th}$ sample, and $N$ is the characteristic length of the Mean Difference operation.
 
-                \begin{figure}[!th]
-                    \includegraphics[width=\textwidth]{Images/mean_diff_score.png}
-                    \centering
-                    \caption{Peak Scoring using Mean Difference with $N=10$. Filtered data is on the left, scored data is on the right.}
-                    \label{mean_diff_score}
-                \end{figure}
 
             \subsection{Modified Pan-Tompkins Scoring}
 
@@ -237,13 +204,13 @@
 
                 The first step is integral as it ensures that when the data is squared, only truly large peaks get amplified. The second step is important to ensure that only positive peaks get detected. Without this, the algorithm would detect both the peak and trough.
 
-                An example of this scoring using this method is shown below in Figure \ref{pan_tompkins_score}.
+                An example of this scoring using this method is shown below in Figure \ref{img_compare_scoring}.
 
                 \begin{figure}[!th]
-                    \includegraphics[width=\textwidth]{Images/pan_tompkins_score.png}
+                    \includegraphics[width=\textwidth]{Images/compare_scoring.png}
                     \centering
-                    \caption{Peak Scoring using Modified Pan-Tompkins with $N=10$. Filtered data is on the left, scored data is on the right.}
-                    \label{pan_tompkins_score}
+                    \caption{Comparison of the three scoring methods on the same filtered signal. From left to right: Maximum Difference with $N=6$, Mean Difference with $N=10$, and Modified Pan-Tompkins with $N=10$.}
+                    \label{img_compare_scoring}
                 \end{figure}
 
 

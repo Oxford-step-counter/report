@@ -347,7 +347,7 @@ for (Point candidate in points) {
 
         \section{Dataset}
 
-            As the algorithm should be able to run well over a number of scenarios, a dataset was collected that aimed to encapsulate as many of these scenarios as possible. The dataset features three participants collecting data with a variety of heights and weights, 3 phones to ensure that similar devices performed similarly, and 6 phone 'positions': in a hand, in a front pocket, in a back pocket, in an armband, in a shoulder purse, and in a neck pouch on a lanyard. In order to ensure generality, traces were collected on three different surfaces: grass/soil, hard floor (stone or linoleum), and carpeted floors as well as on three different phones: a Google Pixel, a Samsung ??, and a Google Nexus 5 device.
+            As the algorithm should be able to run well over a number of scenarios, a dataset was collected that aimed to encapsulate as many of these scenarios as possible. The dataset features three participants collecting data with a variety of heights and weights, 3 phones to ensure that similar devices performed similarly, and 6 phone 'positions': in a hand, in a front pocket, in a back pocket, in an armband, in a shoulder purse, and in a neck pouch on a lanyard. In order to ensure generality, traces were collected on two different surfaces: hard floor (stone or linoleum) and carpeted floors as well as on three different phones: a Google Pixel, a Samsung Galaxy S6, and a Google Nexus 5 device.
 
             This resulted in a dataset containing 48 distinct traces, each with approximately $2.5$ minutes of accelerometer and ground truth data. This dataset should provide a good range of scenarios for optimization such that the final algorithm parameters will be the best performing averaged over a variety of scenarios. It also opens the possibility of specific parameter combinations that provide very high accuracy for a specific scenario. 
 
@@ -443,11 +443,68 @@ for (Point candidate in points) {
 
         \section{Variability in Surface and Phone}
 
-            The first thing to do with the set of results is to look at the differences between floor surfaces and phone devices. It is not expected that the device will have any impact as the accelerometers should record the same data.
+            The first thing to do with the set of results is to look at the differences between floor surfaces and phone devices. It is not expected that the device will have any impact as the accelerometers should record the same data. It is possible that the surface may have an impact. 
 
             \subsection{Surface}
 
+                There are 4 recordings from the Google Pixel on each of the surfaces listed: hard (stone or linoleum) and carpet. All of these recordings were done with the phone in hand. To check the variation between these surfaces, the algorithm parameters will be held constant and the average score will be checked for each surface. The results of these can be seen below in Table \ref{tbl_surface_results}. Note that the parameters used were those of the optimal set, detailed in the next section.
+
+                \begin{center}
+                    \captionof{table}{The results for each of the traces varied by surface.}
+                    \label{tbl_surface_results}
+                    \begin{tabular}{|c|c|c|c|c||c|c|}
+                        \hline
+                        Surface & Recording 1 & Recording 2 & Recording 3 & Recording 4 & Average & Std Deviation\\
+                        \hline
+                        Hard Floor & 95.3\% & 98.5\% & 89.7\% & 97.9\% & 95.4\% & 3.96\%\\
+                        Carpet & 96.8\% & 69.2\% & 80.6\% & 99.2\% & 86.5\% & 14.16\%\\
+                        \hline
+                    \end{tabular}
+                \end{center}
+
+                If we assume that the distribution of the scores will be normal, we can construct a new distribution with the two surfaces such that:
+
+                \begin{equation}
+                    J = H - C,
+                \end{equation}
+
+                \begin{equation}
+                    H \overset{iid}{\sim} N(95.4, 3.96^2),
+                \end{equation}
+
+                \begin{equation}
+                    C \overset{iid}{\sim} N(86.5, 14.16^2),
+                \end{equation}
+
+                where $H$ is a random variable representing the accuracy of the hard surface and $C$ is a random variable representing the accuracy of carpeted surface. This means that:
+
+                \begin{equation}
+                    J \overset{iid}{\sim} N(8.9, 14.7^2),
+                \end{equation}
+
+                We would expect that this new distribution would have a mean of 0 if there was no difference between the surfaces. The variance of this new distribution is too big to reject this hypothesis. If the error threshold between the means is $5\%$, then $P(-5 \leq J \leq 5) = 0.2232$. Even for a relaxed alpha level at $0.1$, the hypothesis is still failed to be rejected.
+
+                Hence, it must be said that the surfaces have no meaningful difference.
+
             \subsection{Phone}
+
+                The difference between phones is expected to be effectively zero. In order to prove this, 2 data recordings were taken with each: Google Pixel, Google Nexus 5, and Samsung S6. The phone was held in hand and the surface was a hard floor. Similarly to the analysis of the differences of surfaces, the algorithm parameters were locked at the optimal set as described below. The table of results is shown below in Table \ref{tbl_phone_results}
+
+                \begin{center}
+                    \captionof{table}{The results for each of the traces varied by phone. Note the Google Pixel average was taken from Table \ref{tbl_surface_results} since the Hard surface results were all with a Google Pixel.}
+                    \label{tbl_phone_results}
+                    \begin{tabular}{|c|c|c||c|}
+                        \hline
+                        Phone & Recording 1 & Recording 2 & Average\\
+                        \hline
+                        Google Pixel & - & - & 95.4\% \\
+                        Google Nexus 5 & 96.1\% & 97.3\% & 96.8\% \\
+                        Samsung S6 & 99.6\% & 95.5\% & 97.6\% \\
+                        \hline
+                    \end{tabular}
+                \end{center}
+
+                By inspection, it is clear that there is no significant impact on accuracy by the choice of phone.                
 
         \section{Optimal Parameters}
 
@@ -638,6 +695,8 @@ for (Point candidate in points) {
     \chapter{Further Work}
 
         There are a few things that can be expanded upon and explored given the database collected and the infrastructure built. 
+
+        The impact of surface on the results can be further investigated. Although the hypothesis that there is no difference was failed to be rejected, a larger sample size is needly to conclusively declare that there is no significant difference.
 
         Since the data for the time stamps of the steps exists in the data, one direction of exploration would be to analyse how many steps the algorithm actually identifies correctly or how many steps the algorithm misses. This is equivalent to a false positive/false negative analysis. This information could provide further information about tuning the algorithm. 
 

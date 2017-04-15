@@ -38,7 +38,7 @@
 
             where $m$ is the magnitude of the acceleration signal, $a_{x}$ is the acceleration in the x direction, $a_{y}$ is the acceleration in the y direction, $a_{z}$ is the acceleration in the z direction, $t_{i,adjusted}$ is the adjusted time stamp for the i-th sample, $t_i$ is the time stamp for the i-th sample, $t_0$ is the first time stamp in the trace, and $t_s$ is the time-scaling factor. For example, converting from nanoseconds to milliseconds, $t_s = 10^6$. 
 
-            The data is then inserted into a simple data structure and is appended to an internal buffer of size 2. When this buffer is full, we will interpolate between these two points. The reason interpolation is needed is that although the developer can specific a desired sample rate in the Android application, there is no guarantee that the accelerometer will be sampled at this rate. An example of this is shown below in Figure \ref{img_sampling_freq} where time between samples is plotted against samples. For the filtering stage, we need to ensure that the data is sampled at a constant rate.
+            The data is then inserted into a simple data structure and is appended to an internal buffer of size 2. When this buffer is full, these two points are linearly interpolated. The reason interpolation is needed is that although the developer can specify a desired sample rate in the Android application, there is no guarantee that the accelerometer will be sampled at this rate. An example of this is shown below in Figure \ref{img_sampling_freq} where time between samples is plotted against samples. For the filtering stage, we need to ensure that the data is sampled at a constant rate.
 
             The algorithm knows what the desired sample rate is, and will interpolate at this value. For example, if the sample rate is set to $f = 100 Hz$, then the algorithm will interpolate around $t = 0, 10, 20, 30, ... ms$. Each interpolated point is appended to the end of the stage's output data stream. The pseudocode for the linear interpolation is shown below.
 
@@ -68,7 +68,7 @@
             \begin{figure}[h]
                 \includegraphics[width=\textwidth]{Images/filtered_signal.png}
                 \centering
-                \caption{Example of a signal being filtered. Filter used: Gaussian Filter with $N=51$ and $\sigma=0.35$. Note the large peaks due to noise are filtered out entirely.}
+                \caption{Example of a signal being filtered. Filter used: Gaussian Filter with $N=51$ and $\sigma=0.35$. Note the large peaks due to noise are filtered out entirely around t = 2300ms, 5500ms, 6500ms, 7750ms, and 9750ms.}
                 \label{img_filtered_signal}
             \end{figure}
 
@@ -286,11 +286,11 @@ for (Point candidate in points) {
 
     \chapter{Data Collection Apparatus}
 
-        A dataset with ground truth data must be acquired in order to optimize and validate the algorithm. The algorithm is only interested in the overall accuracy over periods of time, so the total count of steps is all that is required. However, in order to open up the versatility of the dataset and enable future improvements of the algorithm, a dataset was collected that would also contain the information for timestamps of the steps with the ground truth. Note that the total count of steps can easily be obtained from this more detailed dataset. 
+        A dataset with ground truth data must be acquired in order to optimize and validate the algorithm. The algorithm is only interested in the overall accuracy of the step counting over periods of time, so the total count of steps is all that is required. However, in order to open up the versatility of the dataset and enable future improvements of the algorithm, a dataset was collected that would also contain the information for timestamps of the steps with the ground truth. Note that the total count of steps can easily be obtained from this more detailed dataset. 
 
-        Previous studies, such as [CIT], used video annotation to determine the time stamps of steps, but this is time intensive and prone to error and human inaccuracy. In order to accurately determine this information, a custom device had to be designed and built.
+        Previous studies, such as [CIT], used video annotation to determine the time stamps of steps, but this is time intensive and prone to error and human inaccuracy. In order to accurately determine this information, a custom device was designed and built.
 
-        \section{Custom Design}
+        \section{Design}
 
             The device is designed to record steps with a sensor attached to the shoe. The sensors are connected to an RFduino, which is a Bluetooth-enabled Arduino microcontroller board. The RFduino will poll the sensor for information and broadcast it over Bluetooth Low Energy to an Android smartphone, discussed later. 
 
@@ -310,7 +310,7 @@ for (Point candidate in points) {
                 \label{img_device_og_use}
             \end{figure}
 
-            Unfortunately, this iteration of the device was subject to a number of problems regarding robustness. The device worked well when functional, but it suffered from the breaking of the push buttons due to excessive force. The pins of the push buttons also broke a number of times as they were folded flat against the strap due to the weight of the user.
+            Unfortunately, this iteration of the device was subject to low robustness. The device was accurate when functional, but it suffered from the breaking of the push buttons due to excessive force. The pins of the push buttons also broke a number of times as they were folded flat against the strap due to the weight of the user.
 
             The second iteration of the design dropped the push buttons entirely and moved to a method that relied on having a pressure sensitive resistor sit under the heel of the user inside the shoe. To ensure that this resistor is tolerant and sensitive to the relatively high pressures in this use case, the device used a material called velostat as the variable resistor. Velostat, used primiarly as a packaging material, is "made of polymeric foil impregnated with carbon black to make it electrically conductive" [CIT]. The resistance is reduced when pressure is applied, hence when current flow is high, the foot is down. The new device was made by taping conductive thread to either side of the velostat, completing the circuit. A picture of the new device can be seen in Figure \ref{img_device_new}.
 
@@ -321,7 +321,7 @@ for (Point candidate in points) {
                 \label{img_device_new}
             \end{figure}
 
-            The firmware on the RFduino uses a moving threshold to determine the on-off switch point. The threshold for each sensor is calculated by retaining a history of the minimum and maximum values of each sensor, and then taking the midpoint of the min and max. Every 5 seconds, the minimum and maximum are penalised such as to ensure that exceptionally low or high results long ago do not fix the min and max for the entire trace. A graph representing the raw data from the sensors plotted against the thresholds is shown below in Figure \ref{img_device_new_graph}.
+            The firmware on the RFduino uses a moving threshold to determine the on-off switch point. The threshold for each sensor is calculated by retaining a history of the minimum and maximum values of each sensor, and then taking the midpoint of the min and max. Every 5 seconds, the minimum and maximum are penalised such as to ensure that exceptionally low or high results in the past do not fix the min and max for the entire trace. A graph representing the raw data from the sensors plotted against the thresholds is shown below in Figure \ref{img_device_new_graph}.
 
             \begin{figure}[!th]
                 \includegraphics[width=0.8\textwidth]{Images/device_new_graph.png}
@@ -342,10 +342,10 @@ for (Point candidate in points) {
                 \item Provide a simple UI for the user to capture all of this data efficiently.
             \end{itemize}
 
-            For expendiency's sake, application was designed such that the data would be zipped and compressed together and uploaded to a remote server via HTTP POST. This enabled the user to record mulitple data recordings after one another without needing to manually retrieve the files off the device.
+            For expendiency's sake, the application was designed such that the data would be zipped and compressed together and uploaded to a remote server via HTTP POST. This enabled the user to record mulitple data recordings after one another without needing to manually retrieve the files off the device.
 
 
-        \section{Dataset}
+        \section{Data Collection}
 
             As the algorithm should be able to run well over a number of scenarios, a dataset was collected that aimed to encapsulate as many of these scenarios as possible. The dataset features three participants collecting data with a variety of heights and weights, 3 phones to ensure that similar devices performed similarly, and 6 phone 'positions': in a hand, in a front pocket, in a back pocket, in an armband, in a shoulder purse, and in a neck pouch on a lanyard. In order to ensure generality, traces were collected on two different surfaces: hard floor (stone or linoleum) and carpeted floors as well as on three different phones: a Google Pixel, a Samsung Galaxy S6, and a Google Nexus 5 device.
 
@@ -355,7 +355,7 @@ for (Point candidate in points) {
 
     \chapter{Algorithm Optimization}
 
-        Now that the algorithm and it's parameters have been described and that the dataset and the method by which it was collected was described, the optimization of the algorithm can be described. This can be generalized as a maxization problem where the domain of the problem is defined by the parameter space. The only certain way of getting a close to the true maximum is to run an exhasutive grid search across the parameter space. Each stage may have parameters associated with it, and these parameters may change depending on the stage selection (choice of filter, scoring technique). 
+         Having described the algorithm and it's parameters and the dataset and the method by which it was collected, the optimization of the algorithm can be described. This can be generalized as a maxization problem where the domain of the problem is defined by the parameter space. The only certain way of getting a close to the true maximum is to run an exhasutive grid search across the parameter space. Each stage may have parameters associated with it, and these parameters may change depending on the stage selection (choice of filter, scoring technique). 
 
         In order to keep the running time of the optimization routine to a reasonable limit, this parameter search will need to be fairly rough to limit the number of parameter permutations. By manually testing extremes of the parameters, the set of parameters to test can be reduced to a more reasonable set. The final set can be seen in Tables \ref{tbl_filtering}, \ref{tbl_scoring}, \ref{tbl_detection}. Note that the first stage, Pre-Processing, has been held constant at $t_{scale}=10^6$ and $f_{int}=100Hz$. The Post-Processing stage has also been held constant at $t_{window}=200ms$. 
 
@@ -427,11 +427,11 @@ for (Point candidate in points) {
             \end{tabular}
         \end{center}
 
-        These parameter variations give the total number of permutations at 1008. Each of these parameter sets will be tested on all 48 data recordings listed in the previous section. The results will be averaged across all data recordings for each permutation to give a general accuracy rating. This will be the variable upon which the optimal set will be decided. 
+        These parameter variations give the total number of permutations at 1008. Each of these parameter sets was tested on all 48 data recordings listed in the previous section. The results were averaged across all data recordings for each permutation to give a general accuracy rating. This was the variable upon which the optimal set was decided. 
 
         However, since there are approximately $2$ hours of data to run through the algorithm, each permutation test takes a bit of time. Specifically, on a machine with an Intel i5-6200u, it takes about $5$ minutes for each. This means that if this optimization were to run solely on that machine, it would take $3.5$ days to complete.
 
-        The solution to this problem is to build a distributed computing platform such that the computing load can be spread across multiple workers. To ensure that each parameter set only gets computed once, there will be a central server that is in charge of distributing parameter sets to each of the workers. 
+        The solution to this problem was to build a distributed computing platform such that the computing load can be spread across multiple workers. To ensure that each parameter set only gets computed once, a central server was used that is in charge of distributing parameter sets to each of the workers. 
 
         This backend server was built on Flask [CIT], a microframework for Python, and served over gunicorn [CIT], a Python WSGI (Web Server Gateway Interface) HTTP webserver. The data would be passed back and forward via JSON. The backend would also store the results in a Postgres SQL (Structured Query Language) database [CIT] such that the results can be queried easily.
 
@@ -443,11 +443,11 @@ for (Point candidate in points) {
 
         \section{Variability in Surface and Phone}
 
-            The first thing to do with the set of results is to look at the differences between floor surfaces and phone devices. It is not expected that the device will have any impact as the accelerometers should record the same data. It is possible that the surface may have an impact. 
+            The first thing to do with the set of results is to look at the differences between floor surfaces and phone devices. 
 
-            \subsection{Surface}
+            \subsection{Variability Surface}
 
-                There are 4 recordings from the Google Pixel on each of the surfaces listed: hard (stone or linoleum) and carpet. All of these recordings were done with the phone in hand. To check the variation between these surfaces, the algorithm parameters will be held constant and the average score will be checked for each surface. The results of these can be seen below in Table \ref{tbl_surface_results}. Note that the parameters used were those of the optimal set, detailed in the next section.
+                There are 4 recordings from the Google Pixel on each of the surfaces listed: hard (stone or linoleum) and carpet. All of these recordings were done with the phone in hand. To check the variation between these surfaces, the algorithm parameters are held constant and the average score is checked for each surface. The results of these can be seen below in Table \ref{tbl_surface_results}. Note that the parameters used were those of the optimal set, detailed in the next section.
 
                 \begin{center}
                     \captionof{table}{The results for each of the traces varied by surface.}
@@ -462,7 +462,7 @@ for (Point candidate in points) {
                     \end{tabular}
                 \end{center}
 
-                If we assume that the distribution of the scores will be normal, we can construct a new distribution with the two surfaces such that:
+                If we assume that the distribution of the scores is normal, we can construct a new distribution with the two surfaces such that:
 
                 \begin{equation}
                     J = H - C,
@@ -488,7 +488,7 @@ for (Point candidate in points) {
 
             \subsection{Phone}
 
-                The difference between phones is expected to be effectively zero. In order to prove this, 2 data recordings were taken with each: Google Pixel, Google Nexus 5, and Samsung S6. The phone was held in hand and the surface was a hard floor. Similarly to the analysis of the differences of surfaces, the algorithm parameters were locked at the optimal set as described below. The table of results is shown below in Table \ref{tbl_phone_results}
+                The difference between phones is expected to be effectively zero and this is proved to be the case. In order to prove this, 2 data recordings were taken with each: Google Pixel, Google Nexus 5, and Samsung S6. The phone was held in hand and the surface was a hard floor. Similarly to the analysis of the differences of surfaces, the algorithm parameters were locked at the optimal set as described below. The table of results is shown below in Table \ref{tbl_phone_results}
 
                 \begin{center}
                     \captionof{table}{The results for each of the traces varied by phone. Note the Google Pixel average was taken from Table \ref{tbl_surface_results} since the Hard surface results were all with a Google Pixel.}
@@ -540,7 +540,7 @@ for (Point candidate in points) {
             \begin{figure}[!th]
                 \includegraphics[width=0.8\textwidth]{Images/opt_params_positions_bp.eps}
                 \centering
-                \caption{The spread of the accuracy of the optimal parameters over the 48 data recordings grouped by phone position. The far outliers overwhelmingly come from the 'In Hand' position.}
+                \caption{The spread of the accuracy of the optimal parameters over the 48 data recordings grouped by phone position. The far outliers come from the 'In Hand' position.}
                 \label{img_opt_params_positions_bp}
             \end{figure}
 
@@ -557,7 +557,7 @@ for (Point candidate in points) {
                 \label{tbl_patient_results}
                 \begin{tabular}{|c|c|c|c|}
                     \hline
-                    Label & Recorded Number of Steps & Algorithm Output & Accuracy \\
+                    Label & Observed Number of Steps & Algorithm Output & Accuracy \\
                     \hline
                     Patient 1 & 614 & 654 & 93.5\% \\ 
                     Patient 2 & 567 & 605 & 93.2\% \\

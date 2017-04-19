@@ -2,7 +2,20 @@
 
     \chapter{Overview}
 
+        This section covers the development and evaluation of the sleep detection algorithm. The algorithm aims to extract features like sleep onset time, wakefulness onset time, and total time asleep from accelerometer data recorded on a wrist-mounted device.
+
+        The basis of this algorithm relies on the fact that the level of activity of a person can be determined from the magnitude of the standard deviation or the energy of the accelerometer signal. If there is no movement, the standard deviation should be the square root of the variance of the noise in the accelerometer sensor (assumed to be zero-mean Gaussian). If there is a high level of movement, then there will be a high standard deviation from the signal. If there is a long period of low activity then this period will be defined as asleep. This set of rules and inferences will be the guiding principles upon which the algorithm is built.
+
+        All of the data used in the algorithm development and validation was samplead at 100Hz.
+
     \chapter{Algorithm Description}
+
+        The algorithm works in three stages: the pre-prediction filter, the prediction, and the post-prediction filter.
+
+        \section{Pre-Prediction Filter}
+
+            The first stage of the algorithm is the pre-prediction filter. This aims to take the accelerometer data and remove high frequency noise inherently present in the data. This is done through a simple moving average filter.
+
 
     \chapter{Database}
 

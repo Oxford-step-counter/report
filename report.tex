@@ -61,7 +61,7 @@ breaklines=true
 %References & bibliography - add your own .bib files with \addbibresource command
 \usepackage[backend=bibtex,style=numeric-comp,sorting=none]{biblatex}   % Disabled Sorting - Mark
 \DeclareBibliographyAlias{webpage}{online}  %ignore warnings
-\addbibresource{bibliography.bib}
+\bibliography{bib}
 
 \AtBeginDocument{\let\latexlabel\label}
 
@@ -171,16 +171,6 @@ breaklines=true
 \author{Jamieson Brynes, Somerville College}
 
 
-%Table of contents command by Mark
-% use \setauthor{<name>} just before the chapter/section/subsection heading you want to assign to <name>
-%for example:
-%\setauthor{Mark}
-%\chapter{Optical Tweezing}
-%
-%Also, you can put whatever you want to appear on the left in the toc in square brackets.
-%for example:
-%\chapter[OT]{Optical Tweezing} will be printed as OT in the table of contents
-
 \makeatletter
 \renewcommand{\@pnumwidth}{2.3em}
 \newcommand{\setauthor}[1]{%
@@ -210,5 +200,7 @@ breaklines=true
 \include{Text/introduction}
 \include{Text/step_counter}
 \include{Text/sleep_detection}
+\include{Text/conclusion}
+\printbibliography[title={References}]
 
 \end{document}

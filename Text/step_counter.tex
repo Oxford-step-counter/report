@@ -2,11 +2,11 @@
 
     \chapter{Overview}
 
-        This section covers the development and evaluation of the step counter algorithm. The algorithm aims to extract incidences of steps from the raw accelerometer data recorded on a smartphone. Effectively, the problem is one of peak detection in a noisy signal.
+        This section covers the development and evaluation of the step counter algorithm. The algorithm aims to extract the occurences of steps from the raw accelerometer data recorded on a smartphone. Effectively, the problem is one of peak detection in a noisy signal.
 
-        The basis of this algorithm was adapted from the windowed peak detection algorithm described by Palshakir [CIT].
+        The algorithm developed for this project was adapted from the windowed peak detection algorithm described by Palshakir \cite{palshikar}.
 
-        The algorithm is split into five stages, each responsible for a particular function. The data flows from stage to stage. All stages have an input data stream and output data stream, with the exception of the final stage which only has an input data stream. A block diagram is shown below in Figure \ref{img_sc_block}. Each one of the five stages will be described in detail in the following section. Note that throughout the description there will be options or parameters for each stage; this is intentional, as this allows an optimization routine to be ran on the algorithm to determine the best set of parameters for overall accuracy. 
+        The algorithm is split into five stages, each responsible for a particular function. The data flows from left to right in Figure \ref{img_sc_block} below. All stages have an input data stream and an output data stream, with the exception of the final stage. Each of the five stages will be described in detail in the following sections. Note that throughout the description there will be options or parameters for each stage; this is intentional, as this allows optimization routines to be run on the algorithm to determine the best set of parameters for overall performance. 
 
         \begin{figure}[h]
             \includegraphics[width=\textwidth]{Images/step_counter_block.png}
@@ -26,7 +26,7 @@
                 \item Ensuring a constant sampling frequency by means of linear interpolation.
             \end{enumerate}
 
-            The accelerometer data is received in the tri-axial format, however the algorithm is concerned with the magnitude rather than any single directional component because the the physical orientation of the device is unknown. The time stamps of the samples should also be scaled appropriately so that the first sample received from the user initiating the algorithm is at $t = 0$. The time stamps of the samples are provided in nanoseconds and are not given in standard UTC format, but as the time since system boot. The equations for these operations are simple and are as follows:
+            The project uses a tri-axial accelerometer, however the step-counting algorithm is concerned with the magnitude rather than any single directional component because the physical orientation of the device is unknown. The time stamps of the samples should also be adjusted appropriately so that the first sample received from the user initiating the algorithm is at $t = 0$. The time stamps are provided in nanoseconds and are not given in standard UTC format, but as the time since system boot. The equations for these operations are simple and are as follows:
 
             \begin{equation}
                 m = \sqrt{a_{x}^2 + a_{y}^2 + a_{z}^2},
@@ -36,19 +36,17 @@
                 t_{i,adjusted} = \frac{t_i - t_0}{t_s},
             \end{equation}
 
-            where $m$ is the magnitude of the acceleration signal, $a_{x}$ is the acceleration in the x direction, $a_{y}$ is the acceleration in the y direction, $a_{z}$ is the acceleration in the z direction, $t_{i,adjusted}$ is the adjusted time stamp for the i-th sample, $t_i$ is the time stamp for the i-th sample, $t_0$ is the first time stamp in the trace, and $t_s$ is the time-scaling factor. For example, converting from nanoseconds to milliseconds, $t_s = 10^6$. 
+            where $m$ is the magnitude of the acceleration signal, $a_{x}$ is the acceleration in the x direction, $a_{y}$ is the acceleration in the y direction, $a_{z}$ is the acceleration in the z direction, $t_{i,adjusted}$ is the adjusted time stamp for the i-th sample, $t_i$ is the time stamp for the i-th sample, $t_0$ is the time stamp of the initial sample, and $t_s$ is the time-scaling factor. For example, converting from nanoseconds to milliseconds, $t_s = 10^6$. 
 
-            The data is then inserted into a simple data structure and is appended to an internal buffer of size 2. When this buffer is full, these two points are linearly interpolated. The reason interpolation is needed is that although the developer can specify a desired sample rate in the Android application, there is no guarantee that the accelerometer will be sampled at this rate. An example of this is shown below in Figure \ref{img_sampling_freq} where time between samples is plotted against samples. For the filtering stage, we need to ensure that the data is sampled at a constant rate.
+            Each sample from the accelerometer is then inserted into a simple data structure and is appended to an internal buffer of size 2. When this buffer is full, the two points ihe buffer are linearly interpolated. Although the developer can specify a desired sample rate for the accelerometer, there is no guarantee that the accelerometer will be sampled at this rate, hence interpolation is needed. An example of this is shown below in Figure \ref{img_sampling_freq} where time between samples is plotted against samples. For the subsequent filtering stage, we need to ensure that the data is sampled at a constant rate.
 
-            The algorithm knows what the desired sample rate is, and will interpolate at this value. For example, if the sample rate is set to $f = 100 Hz$, then the algorithm will interpolate around $t = 0, 10, 20, 30, ... ms$. Each interpolated point is appended to the end of the stage's output data stream. The pseudocode for the linear interpolation is shown below.
-
-            The equation for linear interpolation is as follows:
+            The algorithm knows what The desired sample rate determines the values of the linear interpolation equation below:
 
             \begin{equation}
                 value = \frac{y_1 - y_0}{t_1 - t_0} t_{int} + y_0,
             \end{equation}
 
-            where the two points that are being interpolated between are given by: $(t_1, y_1)$ and $(t_0, y_0)$, and the time to be interpolated at is given by $t_{int}$.
+            where the two points of the original data stream are given by: $(t_1, y_1)$ and $(t_0, y_0)$, and the time between each equally sampled value is given by $t_{int}$.
 
             \begin{figure}[h]
                 \includegraphics[width=\textwidth]{Images/sampling_freq.eps}
@@ -59,11 +57,11 @@
 
         \section{Filtering Stage}
 
-            The function of the filtering stage is to smooth the signal by removing as much of the high frequency noise from the acceleromater as possible.
+            The function of the filtering stage is to smooth the signal by removing as much of the high frequency noise from the accelerometer time series as possible.
 
-            The filter required is a simple finite impulse response (FIR), low-pass digital filter. Ideally, this would be a steep low-pass filter. However, this is impossible to achieve due to the infinite impulse response in the time domain (top-hat transforms to the sinc function). In order to capture a variety of walking speeds, the cutoff of these filters will aim to be around 3 Hz. This should be sufficient to capture the walking of even the speediest walkers, as this would translate to an pace of $5.4 mph$ according to the ratio of $2000 steps = 1 mile$ as given by the American College of Sports Medicine [CIT]. Note that the average walking pace was found to be $3.1 mph$ in a study by Knoblauch, et. al. [CIT].
+            The filter required is a simple finite impulse response (FIR), low-pass digital filter. In order to capture a variety of walking speeds, the cutoff frequency for this filter will be around 3 Hz. This should be sufficient to capture the walking of even the speediest walkers, as this would translate to an pace of $5.4 mph$ according to the ratio of $2000 steps = 1 mile$ as given by the American College of Sports Medicine \cite{acsm}. Note that the average walking pace for pedestrians aged 14 to 64 was found to be $3.1 mph$ in a study by Knoblauch, et. al. \cite{walking_speed}.
 
-            An example of the prefiltered signal and the filtered signal is shown below in Figure \ref{img_filtered_signal}.
+            An example of the raw accelerometer signal (after interpolation) and the filtered signal is shown below in Figure \ref{img_filtered_signal}.
 
             \begin{figure}[h]
                 \includegraphics[width=\textwidth]{Images/filtered_signal.png}
@@ -72,11 +70,11 @@
                 \label{img_filtered_signal}
             \end{figure}
 
-            A few filters were implemented for performance testing.
+            A number of filters were implemented for performance testing.
 
             \subsection{Moving Average}
 
-                This is a very simple filter, each point in the filter window are weighted equally such that:
+                This is a very simple filter, each point in the filter window being weighted equally such that:
 
                 \begin{equation}
                     m_k = \frac{1}{N},
@@ -86,7 +84,7 @@
 
             \subsection{Gaussian Filter}
 
-                This is a more complex filter, using a Gaussian as the filter coefficients. This filter attempts to suppress the sidelobes of the center moving average filter by having a smoother transition to 0 magnitude. The weights of the filter are given by:
+                This is a more complex filter, using a Gaussian as the filter coefficients. This filter attempts to suppress the sidelobes of the moving-average filter by having a smoother transition to the stop-band. The weights of the filter are given by:
 
                 \begin{equation}
                     g_k = \exp(-\frac{1}{2}(\frac{k - \frac{N-1}{2}}{\sigma \frac{N-1}{2}})^2),
@@ -96,7 +94,7 @@
 
             \subsection{Hann Filter}
 
-                This is a similar filter to that of the Gaussian, where it attempts to smooth out the response by suppressing the sidelobes of the center moving average filter. The weights of the filter are derived from the Hann window [CIT] and are as follows: 
+                This is a similar filter the Gaussian filter, which also attempts to smooth out the response by suppressing the sidelobes of the moving-average filter. The weights of the filter are derived from the Hann window [CIT] and are as follows: 
 
                 \begin{equation}
                     h_k = \frac{1}{2}(1 - \cos(\frac{2\pi k}{N - 1}))
@@ -106,7 +104,7 @@
 
             \subsection{Kaiser-Bessel Filter}
 
-                This is the most complex filter design, designed by Kaiser [CIT] in order to achieve the desired attenutation at the cutoff frequency. It combines the ideal filter response (note a sinc function in the time domain) and a Bessel window to achieve the result. The calculation of the coeffcients are as follows.
+                This is the most complex filter design, which combines the ideal filter response (note a sinc function in the time domain) and a Bessel window to achieve the desired response. The calculation of the coeffcients is as follows \cite{kaiser-bessel}:
 
                 First, calculate the window shape parameter $\alpha$. 
 
@@ -154,17 +152,17 @@
 
         \section{Scoring Stage}
 
-            The function of the scoring stage is to evaluate how 'peaky' any given point is. The result of this stage should increase the magnitude of peak points, making them more obvious to a peak detector.
+            The function of the scoring stage is to evaluate the 'peakiness' of given point. The result of this stage should increase the magnitude of any peak, making them more obvious to the subsequent peak detector.
 
-            A few methods were developed to be used in testing. These are detailed below.
+            A few methods were evaluated. These are detailed below.
 
             \subsection{Maximum Difference}
 
-                This method uses the local neighbors of the point in question to determine how peaky the point is. It will look $N$ points to the left and determines the maximum difference between the point in question and those points. It will do the same for the $N$ points to the right, and then average the two maximum differences as the result.
+                This method uses the local neighbours of the point in question to determine how peaky the point is. It considers the $N$ points to the left and determines the maximum difference between the point in question and those points. It does the same for the $N$ points to the right, and then averages the two maximum differences as the result.
 
-                This operation will result in enhanced peaks corresponding to steps as the following trough will cause a higher magnitude relative to peaks corresponding to other causes. An example of the output from a filtered signal to the scored signal using Maximum Difference is shown below in Figure \ref{img_compare_scoring}.
+                This operation results in enhanced peaks. An example of the output from the scoring stage using Maximum Difference is shown below in Figure \ref{img_compare_scoring}.
 
-                The equation describing this behavior is given by:
+                The equation describing this behaviour is given by:
 
                 \begin{equation}
                 x = \frac{\max\limits_k{(x_i - x_{i-k})} + \max\limits_k{(x_i - x_{i+k})}}{2},
@@ -175,11 +173,11 @@
 
             \subsection{Mean Difference}
 
-                This method is similar to Maximum Difference, except that instead of taking the maximum of the difference to the left and the right, Mean Difference takes the mean of all the differences. The effect is similar to Maximum Difference, but smaller in magnitude. It also preserves the overall shape of the waveform.
+                This method is similar to the Maximum Difference method, except that instead of taking the maximum of the difference to the left and the right of the point in question, the Mean Difference method takes the mean of all the differences. The effect is similar to the Maximum Difference method, but smaller in magnitude. It also preserves the overall shape of the waveform.
 
-                An example of the output from a filtered signal to the scored signal using Mean Difference is shown below in Figure \ref{img_compare_scoring}.
+                An example of the output from the scoring stage using Mean Difference is shown below in Figure \ref{img_compare_scoring}.
 
-                The equation describing this behavior is given by:
+                The equation describing this behaviour is given by:
 
                 \begin{equation}
                 x = \frac{\sum_{k=-N, k\neq i}^{N} (x_i - x_{i+k})}{2N},
@@ -190,21 +188,21 @@
 
             \subsection{Modified Pan-Tompkins Scoring}
 
-                This method is a derivative from the famous algorithm by Pan and Tompkins [CIT] that was used for peak detection. 
+                This method is a derivative from the well-known algorithm by Pan and Tompkins \cite{pan-tompkins} that was used for peak detection in electrocardiogram (ECG) waveforms. 
 
-                The original algorithm had four main steps: digital bandpass filter, differentiate the signal, square the signal, then a moving integration window to reconstitute the signal.
+                The original algorithm had four main steps: digital bandpass filter, signal differentiation, squaring of the signal, then a moving integration window to reconstitute the signal.
 
                 From this baseline, a modified algorithm was developed:
 
                 \begin{itemize}
-                    \item Locally zero-mean the data around with a window of size $N$.
+                    \item Locally zero-mean the data within a window of size $N$.
                     \item Set all the data points that are less than 0 to zero.
                     \item Square the data to amplify any large peaks.
                 \end{itemize}
 
-                The first step is integral as it ensures that when the data is squared, only truly large peaks get amplified. The second step is important to ensure that only positive peaks get detected. Without this, the algorithm would detect both the peak and trough.
+                The second step is ensures that when the data is squared, only peaks get amplified. Without it, the algorithm would detect both peaks and troughs.
 
-                An example of this scoring using this method is shown below in Figure \ref{img_compare_scoring}.
+                An example of the output from the scoring stage using the Modified Pan Tompkins method is shown below in Figure \ref{img_compare_scoring}.
 
                 \begin{figure}[!th]
                     \includegraphics[width=\textwidth]{Images/compare_scoring.png}
@@ -216,9 +214,9 @@
 
         \section{Detection Stage}
 
-            The next stage in the process is to identify potential candidates for peaks associated with peaks. This is done using statistics to identify outliers. 
+            The next stage in the process is to identify potential candidates for peaks associated with steps. This is done using statistics to identify outliers. 
 
-            As the algorithm traverses the signal, it keeps track of a running mean and standard deviation. Computationally efficient way of doing this incrementally are as shown below:
+            As the algorithm processes the signal, it keeps track of a running mean and standard deviation. A computationally efficient way of doing this incrementally is as shown below:
 
             \begin{equation}
                 \bar{x}_n = \frac{x_n + (n-1)\bar{x}_{n-1}}{n},
@@ -232,7 +230,7 @@
 
             where $x_n$ is the $n^{th}$ sample, $\bar{x}_n$ is the running mean at the $n^{th}$ sample, and $\sigma_n$ is the running standard deviation at the $n^{th}$ sample.
 
-            The algorithm will then use these two quantities to determine whether any given point is an outlier by thresholding. That is to say, if a point is $c$ or more running standard deviations above the running mean, then it is marked as a potential peak. That is to say, if it satisfies the equation below, it is a potential peak.
+            The algorithm then uses these two quantities to determine whether any given point is an outlier by thresholding. If a point is more than $c$ current standard deviations above the current mean, then it is marked as a potential peak associated with a step, i.e. - if it satisfies the equation below:
 
             \begin{equation}
                 \frac{x_n - \bar{x}_n}{\sigma_n}\geq c,
@@ -240,9 +238,9 @@
 
             where $c$ is the designated threshold.
 
-            An example of the results of this method is shown below in Figure \ref{img_detection_stage}.
+            An example of the results from this method is shown below in Figure \ref{img_detection_stage}.
 
-            Note that the algorithm skips a number of points at the beginning as it builds up a running mean and standard deviation. Unfortuntely, this means that, almost always, the first peak it encounters will be marked as a potential step.
+            Note that the algorithm builds up a running mean and standard deviation after initialisation. This means that, the first peak it encounters will be marked as a potential step.
 
             \begin{figure}[!th]
                 \includegraphics[width=\textwidth]{Images/detection_stage.png}
@@ -253,11 +251,11 @@
 
         \section{Post-Processing Stage}
 
-            The final stage of the algorithm is to collect the potential peaks from the previous stage and clean these such that only the true peaks remain. In Figure \ref{img_detection_stage}, all of the potential peak points are clustered on the rise to the peak, this stage should remove all the erroneous points and leave only the maximum of each peak. This stage also makes use of the fact that the peaks associated with walking are usually periodic with a minimum delay between them. Note this delay is related to the speed of walking.
+            The final stage of the algorithm is to identify the true peaks from the potential peaks from the previous stage. In Figure \ref{img_detection_stage}, all of the potential peak points are clustered on the rise to the main peak, This stage removes the erroneous points and leaves only the local maximum or the true peak. This stage also makes use of the fact that the peaks associated with walking are usually periodic with a minimum delay between them. Note this delay is related to the speed of walking.
 
-            This stage moves a window of a fixed size, $t_{window}$, across the potential peaks and only keeps the maximum point in the window. This effectively removes all the points leading up to the peak while preserving the peak. By tuning the window size, the algorithm can ensure that for most cases no two steps will reside in this window at the same time. This window was set to $200ms$ which translates to a maximum walking speed of $5 steps/sec$, far faster than average walking pace.
+            This stage slides a window of a fixed size, $t_{window}$, across the potential peaks and only keeps the maximum point within the window. This effectively removes all the points leading up to the peak while preserving the peak. By tuning the window size, the algorithm can ensure that for most cases no two steps will reside in this window at the same time. The window length was set to $200ms$ which corresponds to a maximum walking speed of $5 steps/sec$, much faster than average walking pace.
 
-            The pseudocode for such an operation would be like the following:
+            The pseudocode for this step is as follows:
 
             \begin{lstlisting}
 int windowSize = 200; // In ms
@@ -275,7 +273,7 @@ for (Point candidate in points) {
 }
             \end{lstlisting}
 
-            The result of this simple operation retains the peak points while throwing away the points surrounding the peak, this is exactly the intended behavior. An example of this can be seen in \ref{img_post_stage}.
+            The result of this stage retains the main peak points while throwing away the points surrounding the peak, as intended. An example of this can be seen in \ref{img_post_stage}.
 
             \begin{figure}[!th]
                 \includegraphics[width=\textwidth]{Images/post_stage.png}
@@ -284,17 +282,18 @@ for (Point candidate in points) {
                 \label{img_post_stage}
             \end{figure}
 
-    \chapter{Data Collection Apparatus}
+    \chapter{Data Collection Equipment}
+    \label{sc_device}
 
-        A dataset with ground truth data must be acquired in order to optimize and validate the algorithm. The algorithm is only interested in the overall accuracy of the step counting over periods of time, so the total count of steps is all that is required. However, in order to open up the versatility of the dataset and enable future improvements of the algorithm, a dataset was collected that would also contain the information for timestamps of the steps with the ground truth. Note that the total count of steps can easily be obtained from this more detailed dataset. 
+        A dataset with ground truth data must be acquired in order to optimize and validate the step-counting algorithm. The main goal is step counting over time, with the total count of steps being all that is required. However, in order to open up the versatility of the dataset and enable future improvements of the algorithm, a dataset was collected that would also contain the information for identifying the steps using reference data. Note that the total count of steps can easily be obtained from this more detailed dataset. 
 
-        Previous studies, such as [CIT], used video annotation to determine the time stamps of steps, but this is time intensive and prone to error and human inaccuracy. In order to accurately determine this information, a custom device was designed and built.
+        Previous studies, such as \cite{brajdic}, used video annotation to determine the time stamps of steps, but this is time intensive and prone to error. Instead, a custom device was designed and built to derive this information.
 
         \section{Design}
 
-            The device is designed to record steps with a sensor attached to the shoe. The sensors are connected to an RFduino, which is a Bluetooth-enabled Arduino microcontroller board. The RFduino will poll the sensor for information and broadcast it over Bluetooth Low Energy to an Android smartphone, discussed later. 
+            The gold-standard device is designed to record steps with a sensor attached to the shoe. The sensors are connected to an RFduino, which is a Bluetooth-enabled Arduino microcontroller board. The RFduino polls the sensor for information and broadcasts it over Bluetooth Low Energy to an Android smartphone, as discussed later. 
 
-            A first iteration of the device used push buttons mounted on straps that would be strapped around the vamp of the shoe, covering the ball of the user's foot. These push buttons would be connected to the RFduino with a simple pull down resistor, such that logic level 0 indicates that the push button is up and the user's foot is up and logic level 1 indicates that the push button is down and the user's foot is down. A picture of the push button mounted on the straps can be seen below in Figure \ref{img_device_og} along with a picture of the device in use in Figure \ref{img_device_og_use}.
+            A first iteration of the device used push buttons mounted on straps as shown in Figure \ref{img_device_og_use}. These push buttons are connected to the RFduino with a simple pull-down resistor, such that logic level 0 indicates that the push button is up and the user's foot is up and logic level 1 indicates that the push button is down and the user's foot is down. A picture of the push button mounted on the straps can be seen below in Figure \ref{img_device_og}.
 
             \begin{figure}[!th]
                 \includegraphics[width=0.6\textwidth]{Images/device_og.jpg}
@@ -306,13 +305,13 @@ for (Point candidate in points) {
             \begin{figure}[!th]
                 \includegraphics[width=0.6\textwidth]{Images/device_og_use.jpg}
                 \centering
-                \caption{A picture of the original ground truth device in use. Notice the placement of the straps on the user's shoes such that the push button would be positioned roughly under the ball of the foot.}
+                \caption{A picture of the original ground truth device in use. Notice the placement of the straps on the user's shoes such that the push button is positioned roughly under the ball of the foot.}
                 \label{img_device_og_use}
             \end{figure}
 
-            Unfortunately, this iteration of the device was subject to low robustness. The device was accurate when functional, but it suffered from the breaking of the push buttons due to excessive force. The pins of the push buttons also broke a number of times as they were folded flat against the strap due to the weight of the user.
+            Unfortunately, this first iteration of the device suffered from low robustness. The device was accurate when functional, but the push buttons broke due to excessive force. The pins of the push buttons also broke a number of times as they were folded flat against the strap due to the weight of the user.
 
-            The second iteration of the design dropped the push buttons entirely and moved to a method that relied on having a pressure sensitive resistor sit under the heel of the user inside the shoe. To ensure that this resistor is tolerant and sensitive to the relatively high pressures in this use case, the device used a material called velostat as the variable resistor. Velostat, used primiarly as a packaging material, is "made of polymeric foil impregnated with carbon black to make it electrically conductive" [CIT]. The resistance is reduced when pressure is applied, hence when current flow is high, the foot is down. The new device was made by taping conductive thread to either side of the velostat, completing the circuit. A picture of the new device can be seen in Figure \ref{img_device_new}.
+            The second iteration of the design abandoned the push buttons entirely and relied instead on having a pressure-sensitive resistor positioned under the heel of the user inside the shoe. To ensure that this resistor was tolerant and sensitive to the relatively high pressures in this use case, the device used a material called velostat as the variable resistor. Velostat, used primiarly as a packaging material, is "made of polymeric foil impregnated with carbon black to make it electrically conductive" \cite{velostat}. The resistance is reduced when pressure is applied, hence a high current flow corresponds to the foot being down on the ground. The new device was made by taping conductive thread to either side of the velostat, completing the circuit. A picture of the new device can be seen in Figure \ref{img_device_new}.
 
             \begin{figure}[!th]
                 \includegraphics[width=0.6\textwidth]{Images/device_new.jpg}
@@ -321,43 +320,41 @@ for (Point candidate in points) {
                 \label{img_device_new}
             \end{figure}
 
-            The firmware on the RFduino uses a moving threshold to determine the on-off switch point. The threshold for each sensor is calculated by retaining a history of the minimum and maximum values of each sensor, and then taking the midpoint of the min and max. Every 5 seconds, the minimum and maximum are penalised such as to ensure that exceptionally low or high results in the past do not fix the min and max for the entire trace. A graph representing the raw data from the sensors plotted against the thresholds is shown below in Figure \ref{img_device_new_graph}.
+            The firmware on the RFduino uses a moving threshold to determine the transition between the two states. The threshold for each sensor is updated by retaining the minimum and maximum values. Every 5 seconds, if the difference between these two exceeds a set minimum difference, the minimum and maximum are penalised by a factor proportional to the difference and the threshold is set to the midpoint between the minimum and maximum. This penalisation technique ensures that the minimum and maximum are local as minimum and maximum values that were set long ago would be penalised until a local value becomes relevant. A graph representing the raw data from the sensors plotted together with the thresholds against time is shown below in Figure \ref{img_device_new_graph}.
 
             \begin{figure}[!th]
                 \includegraphics[width=0.8\textwidth]{Images/device_new_graph.png}
                 \centering
-                \caption{The raw data captured by the new ground truth device. Note how the steps are clearly discernable and the moving threshold correctly classifies the two states. The difference in magnitude for each signal is explained by the natural variation in velostat pads.}
+                \caption{The raw data captured by the new ground truth device. Note how the steps are clearly discernable and the moving threshold correctly differentiates the two states. The difference in magnitude between the left-foot and right-foot signal is explained by the natural variation in velostat pads.}
                 \label{img_device_new_graph}
             \end{figure}         
 
 
         \section{Android Application}
 
-            To capture the accelerometer data and the ground truth simultaneously, an Android application had to written to accomodate this functionality. It had to:
+            To capture the accelerometer data and the ground truth simultaneously, an Android application had to be written to accommodate this functionality. The specifications were:
 
             \begin{itemize}
-                \item Capture accelerometer data at a high rate (at least 100Hz) and save to a file.
-                \item Connect via Bluetooth Low Energy to the ground truth device, decode the signal, and save the data to a file with synchronized timestamps with respect to the accelerometer data.
+                \item Capture accelerometer data at a high sample rate (at least 100Hz) and save to a file.
+                \item Connect via Bluetooth Low Energy to the ground-truth device, decode the signal, and save the data to a file with synchronized timestamps with respect to the accelerometer data.
                 \item Provide a simple method of retrieving this data off the device.
                 \item Provide a simple UI for the user to capture all of this data efficiently.
             \end{itemize}
 
-            For expendiency's sake, the application was designed such that the data would be zipped and compressed together and uploaded to a remote server via HTTP POST. This enabled the user to record mulitple data recordings after one another without needing to manually retrieve the files off the device.
+            The application was designed such that the data would be zipped and compressed together and uploaded to a remote server via HTTP POST. This enabled the user to record multiple data recordings after one another without needing to manually retrieve the files off the device.
 
 
         \section{Data Collection}
 
-            As the algorithm should be able to run well over a number of scenarios, a dataset was collected that aimed to encapsulate as many of these scenarios as possible. The dataset features three participants collecting data with a variety of heights and weights, 3 phones to ensure that similar devices performed similarly, and 6 phone 'positions': in a hand, in a front pocket, in a back pocket, in an armband, in a shoulder purse, and in a neck pouch on a lanyard. In order to ensure generality, traces were collected on two different surfaces: hard floor (stone or linoleum) and carpeted floors as well as on three different phones: a Google Pixel, a Samsung Galaxy S6, and a Google Nexus 5 device.
+            A dataset was collected that aimed to capture as many scenarios as possible. The dataset features three participants with different of heights and weights, 3 smartphones (a Google Pixel, a Samsung Galaxy S6, and a Google Nexus 5 device) to ensure that similar devices performed similarly, and 6 phone 'positions': in a hand, in a front pocket, in a back pocket, in an armband, in a shoulder purse, and in a neck pouch on a lanyard. In order to ensure generality, recordings were made on two different surfaces: hard floor (stone or linoleum) and carpeted floors. This resulted in a dataset containing 48 distinct recordings, each with approximately $2.5$ minutes of accelerometer and ground-truth data. 
 
-            This resulted in a dataset containing 48 distinct traces, each with approximately $2.5$ minutes of accelerometer and ground truth data. This dataset should provide a good range of scenarios for optimization such that the final algorithm parameters will be the best performing averaged over a variety of scenarios. It also opens the possibility of specific parameter combinations that provide very high accuracy for a specific scenario. 
-
-            In addition, 3 data traces were collected from consenting patients participating to a clinical pilot study without the ground truth device data for post-optimization validation. The total step counted was instead hand counted by a trainer professional present at the recording.
+            In addition, 3 recordings were collected from consenting patients participating in a clinical pilot study without the ground truth device data for post-optimization validation. The total steps, in these 3 instances, were hand counted by a trained healthcare professional present at the recording.
 
     \chapter{Algorithm Optimization}
 
-         Having described the algorithm and it's parameters and the dataset and the method by which it was collected, the optimization of the algorithm can be described. This can be generalized as a maxization problem where the domain of the problem is defined by the parameter space. The only certain way of getting a close to the true maximum is to run an exhasutive grid search across the parameter space. Each stage may have parameters associated with it, and these parameters may change depending on the stage selection (choice of filter, scoring technique). 
+         Optimization of the algorithm can be described as a maximization problem for which the problem domain is defined by the parameter space. The only way of getting a close to the true maximum is to run an exhaustive grid search across the parameter space. Each stage may have parameters associated with it, and these parameters may change depending on the stage selection (choice of filter, scoring technique). 
 
-        In order to keep the running time of the optimization routine to a reasonable limit, this parameter search will need to be fairly rough to limit the number of parameter permutations. By manually testing extremes of the parameters, the set of parameters to test can be reduced to a more reasonable set. The final set can be seen in Tables \ref{tbl_filtering}, \ref{tbl_scoring}, \ref{tbl_detection}. Note that the first stage, Pre-Processing, has been held constant at $t_{scale}=10^6$ and $f_{int}=100Hz$. The Post-Processing stage has also been held constant at $t_{window}=200ms$. 
+        For the running time of the optimization routine to be kept within a reasonable limits, the parameter search will need to be fairly coarse to limit the number of parameter permutations. The final set can be seen in Tables \ref{tbl_filtering}, \ref{tbl_scoring}, \ref{tbl_detection}. Note that the first stage, Pre-Processing, has been held constant at $t_{scale}=10^6$ and $f_{int}=100Hz$. The Post-Processing stage has also been held constant at $t_{window}=200ms$. 
 
 
         \begin{center}
@@ -427,88 +424,106 @@ for (Point candidate in points) {
             \end{tabular}
         \end{center}
 
-        These parameter variations give the total number of permutations at 1008. Each of these parameter sets was tested on all 48 data recordings listed in the previous section. The results were averaged across all data recordings for each permutation to give a general accuracy rating. This was the variable upon which the optimal set was decided. 
+        These parameter variations give a total number of permutations equal to 1008. Each of these parameter sets was tested on all 48 data recordings listed in the previous section. The results were averaged across all data recordings for each permutation to give an overall value for the accuracy.
 
-        However, since there are approximately $2$ hours of data to run through the algorithm, each permutation test takes a bit of time. Specifically, on a machine with an Intel i5-6200u, it takes about $5$ minutes for each. This means that if this optimization were to run solely on that machine, it would take $3.5$ days to complete.
+        However, since there are approximately $2$ hours of data to run through the algorithm, each combination of parameters takes 5 minutes to be tested on a machine with an Intel i5-6200u. If the optimization were run solely on that machine, it would take $3.5$ days to complete.
 
-        The solution to this problem was to build a distributed computing platform such that the computing load can be spread across multiple workers. To ensure that each parameter set only gets computed once, a central server was used that is in charge of distributing parameter sets to each of the workers. 
+        The solution to this problem was to build a distributed computing platform such that the computing load could be spread across multiple machines. The backend server was built on Flask \cite{flask}, a web microframework for Python, and served over gunicorn \cite{gunicorn}, a Python WSGI (Web Server Gateway Interface) HTTP webserver. The data was passed back and forward via JSON (JavaScript Object Notation). The backend would also store the results in a PostgreSQL (Structured Query Language) database \cite{postgres} such that the results could be queried easily.
 
-        This backend server was built on Flask [CIT], a microframework for Python, and served over gunicorn [CIT], a Python WSGI (Web Server Gateway Interface) HTTP webserver. The data would be passed back and forward via JSON. The backend would also store the results in a Postgres SQL (Structured Query Language) database [CIT] such that the results can be queried easily.
+        Each machine had a local implementation of the algorithm and a copy of the dataset. The machine queried the backend for a new set of parameters, and fetched the JSON of these with an HTTP GET request. Once the computation was completed, the machine appended the results to the JSON file and returned it via an HTTP POST request to the backend. A new set of parameters was then requested, until all permutations had been exhausted.
 
-        Each worker would have an implementation of the algorithm and the dataset locally. The worker will query the backend for a new set of parameters, and fetch the JSON of these with an HTTP GET request. When the computation is completed, the worker will append the results to the JSON file and return it via an HTTP POST request to the backend. It would then request a new set of parameters, until all permutations have been exhausted.
-
-        In this instance, Google Cloud Compute [CIT] was used to instantiate 8 workers to run the algorithm, such that the runtime of the routine was cut down to around 11 hours. This is much more manageable and reasonable.
+        In this instance, Google Cloud Compute \cite{gcc} was used to instantiate 8 machines to run the algorithm, such that the runtime for the exhaustive search was cut down to around 11 hours.
 
     \chapter{Results}
 
+        Note that in the following chapter, all of the statistics given are in terms of accuracy defined by:
+
+        \begin{equation}
+            a = 100(1 - \frac{|s_{a}-s_{gt}|}{s_{gt}}),
+        \end{equation}
+
+        where $a$ is the accuracy, $s_{a}$ is the number of steps from the algorithm and $s_{gt}$ is the number of steps in the ground truth.
+
         \section{Variability in Surface and Phone}
 
-            The first thing to do with the set of results is to look at the differences between floor surfaces and phone devices. 
+            Our first investigation is concerned with the differences between floor surfaces and phone devices. 
 
             \subsection{Variability Surface}
 
-                There are 4 recordings from the Google Pixel on each of the surfaces listed: hard (stone or linoleum) and carpet. All of these recordings were done with the phone in hand. To check the variation between these surfaces, the algorithm parameters are held constant and the average score is checked for each surface. The results of these can be seen below in Table \ref{tbl_surface_results}. Note that the parameters used were those of the optimal set, detailed in the next section.
+                There are 4 recordings from the Google Pixel on each of the surfaces listed: hard (stone or linoleum) and carpet. All of these recordings were carried out with the phone in hand. To check the variation between these surfaces, the algorithm parameters are held constant and the average score is checked for each surface. The results of these tests can be seen below in Table \ref{tbl_surface_results}. Note that the parameters used were those of the optimal set, as detailed in the next section.
 
                 \begin{center}
-                    \captionof{table}{The results for each of the traces varied by surface.}
+                    \captionof{table}{The results for each of the recordings according to surface.}
                     \label{tbl_surface_results}
-                    \begin{tabular}{|c|c|c|c|c||c|c|}
+                    \begin{tabular}{|c|c|c|c|}
                         \hline
-                        Surface & Recording 1 & Recording 2 & Recording 3 & Recording 4 & Average & Std Deviation\\
+                        Recording & Ground Truth (steps) & Algorithm Output (steps) & Accuracy \\
                         \hline
-                        Hard Floor & 95.3\% & 98.5\% & 89.7\% & 97.9\% & 95.4\% & 3.96\%\\
-                        Carpet & 96.8\% & 69.2\% & 80.6\% & 99.2\% & 86.5\% & 14.16\%\\
+                        \multicolumn{4}{|c|}{\textbf{Hard Floor}} \\
+                        \hline
+                        1 & 292 & 298 & 97.9\% \\
+                        2 & 267 & 271 & 98.1\% \\
+                        3 & 323 & 290 & 89.7\% \\
+                        4 & 322 & 307 & 95.3\% \\
+                        \hline
+                        Average & - & - & 95.3\% \\
+                        \hline
+                        \multicolumn{4}{|c|}{\textbf{Carpet}} \\                        
+                        \hline
+                        1 & 243 & 245 & 99.1\% \\
+                        2 & 255 & 263 & 96.9\% \\
+                        3 & 206 & 246 & 80.6\% \\
+                        4 & 195 & 257 & 68.2\% \\
+                        \hline
+                        Average & - & - & 86.2\% \\
                         \hline
                     \end{tabular}
                 \end{center}
 
-                If we assume that the distribution of the scores is normal, we can construct a new distribution with the two surfaces such that:
-
-                \begin{equation}
-                    J = H - C,
-                \end{equation}
-
-                \begin{equation}
-                    H \overset{iid}{\sim} N(95.4, 3.96^2),
-                \end{equation}
-
-                \begin{equation}
-                    C \overset{iid}{\sim} N(86.5, 14.16^2),
-                \end{equation}
-
-                where $H$ is a random variable representing the accuracy of the hard surface and $C$ is a random variable representing the accuracy of carpeted surface. This means that:
-
-                \begin{equation}
-                    J \overset{iid}{\sim} N(8.9, 14.7^2),
-                \end{equation}
-
-                We would expect that this new distribution would have a mean of 0 if there was no difference between the surfaces. The variance of this new distribution is too big to reject this hypothesis. If the error threshold between the means is $5\%$, then $P(-5 \leq J \leq 5) = 0.2232$. Even for a relaxed alpha level at $0.1$, the hypothesis is still failed to be rejected.
-
-                Hence, it must be said that the surfaces have no meaningful difference.
+                While there is a noticeable difference between the accuracies obtained on hard floor versus carpet, the high variance in the carpet results means that it is not possible to tell whether there is a meaningful difference between the types of surfaces or whether Carpet Recording 4, which lowered the average significantly was an isolated instance. Further tests would be needed to be recorded to confirm this hypothesis.
 
             \subsection{Phone}
 
-                The difference between phones is expected to be effectively zero and this is proved to be the case. In order to prove this, 2 data recordings were taken with each: Google Pixel, Google Nexus 5, and Samsung S6. The phone was held in hand and the surface was a hard floor. Similarly to the analysis of the differences of surfaces, the algorithm parameters were locked at the optimal set as described below. The table of results is shown below in Table \ref{tbl_phone_results}
+                The difference between phones is expected to be negligible and this proved to be the case. These data recordings were taken with each phone: Google Pixel, Google Nexus 5, and Samsung S6. The phone was held in hand and the surface was a hard floor. As with the analysis for the different surfaces, the algorithm parameters were those of the optimal set as described below. The table of results is shown below in Table \ref{tbl_phone_results}
 
                 \begin{center}
-                    \captionof{table}{The results for each of the traces varied by phone. Note the Google Pixel average was taken from Table \ref{tbl_surface_results} since the Hard surface results were all with a Google Pixel.}
+                    \captionof{table}{The results for each of the recordings according to the phone. Note that only 2 recordings were made with each of the Google Nexus 5 and Samsung S6.}
                     \label{tbl_phone_results}
-                    \begin{tabular}{|c|c|c||c|}
+                    \begin{tabular}{|c|c|c|c|}
                         \hline
-                        Phone & Recording 1 & Recording 2 & Average\\
+                        Recording & Ground Truth (steps) & Algorithm Output (steps) & Accuracy \\
                         \hline
-                        Google Pixel & - & - & 95.4\% \\
-                        Google Nexus 5 & 96.1\% & 97.3\% & 96.8\% \\
-                        Samsung S6 & 99.6\% & 95.5\% & 97.6\% \\
+                        \multicolumn{4}{|c|}{\textbf{Google Pixel}} \\
+                        \hline
+                        1 & 292 & 298 & 97.9\% \\
+                        2 & 267 & 271 & 98.1\% \\
+                        3 & 323 & 290 & 89.7\% \\
+                        4 & 322 & 307 & 95.3\% \\
+                        \hline
+                        Average & - & - & 95.3\% \\
+                        \hline
+                        \multicolumn{4}{|c|}{\textbf{Google Nexus 5}} \\                        
+                        \hline
+                        1 & 305 & 293 & 96.1\% \\
+                        2 & 306 & 298 & 97.3\% \\
+                        \hline
+                        Average & - & - & 96.8\%\\
+                        \hline
+                        \multicolumn{4}{|c|}{\textbf{Samsung S6}} \\                        
+                        \hline
+                        1 & 266 & 265 & 99.6\% \\
+                        2 & 265 & 253 & 95.5\% \\
+                        \hline
+                        Average & - & - & 97.6\% \\
                         \hline
                     \end{tabular}
                 \end{center}
 
-                By inspection, it is clear that there is no significant impact on accuracy by the choice of phone.                
+                By inspection, it is clear that the choice of phone has no significant impact on accuracy.           
 
         \section{Optimal Parameters}
 
-            The best set of parameters given by the optimization routine given above achieved an average accuracy of 93.7\% and a median accuracy of 96.8\% across the 48 data recordings. The parameters that achieve this accuracy is given by Table \ref{tbl_opt_params}.
+            With the optimal set of parameters, an average accuracy of 93.7\% and a median accuracy of 96.8\% are obtained across the 48 data recordings. The parameters that achieve this accuracy are given by Table \ref{tbl_opt_params}.
 
             \begin{center}
                 \captionof{table}{The parameters for the optimal algorithm performance.}
@@ -535,7 +550,7 @@ for (Point candidate in points) {
                 \label{img_opt_params_overall}
             \end{figure}
 
-            If the results are split by the position the phone was in when the data was recorded, the source of these outliers can be seen. These plots can be seen below in Figure \ref{img_opt_params_positions_bp}.
+            If the results are split according to the position of the phone during the recordings, the source of these outliers becomes evident. These plots can be seen below in Figure \ref{img_opt_params_positions_bp}.
 
             \begin{figure}[!th]
                 \includegraphics[width=0.8\textwidth]{Images/opt_params_positions_bp.eps}
@@ -544,13 +559,13 @@ for (Point candidate in points) {
                 \label{img_opt_params_positions_bp}
             \end{figure}
 
-            As can be seen from Figure \ref{img_opt_params_positions_bp}, the outliers come primarily from the 'In Hand' or 'Purse' positions. This leads to the hypothesis that these positions may induce some harmonics in the walking frequency range that are destructive to the signal from stepping. The source of this may be the user swinging their arm when holding the phone or the purse swinging back and forth under arm.
+            As can be seen from Figure \ref{img_opt_params_positions_bp}, the outliers come primarily from the 'In Hand' or 'Purse' positions. This leads to the hypothesis that these positions may induce some harmonics in the walking frequency range. The source of these may be the user swinging their arm when holding the phone or the purse swinging back and forth under arm.
 
-            This grouping also reveals that the 'Back Pocket', 'Arm Band', and 'Neck Pouch' positions seem to be the best positions for the algorithm. It should be noted that the 'Arm Band' may be subject to the same harmonics as the 'In Hand' position, however, the relatively limited movement of the upper arm when compared to the hand limits the impact of these harmonics.
+            This grouping also reveals that the 'Back Pocket', 'Arm Band', and 'Neck Pouch' positions seem to be the best positions. It should be noted that the 'Arm Band' may be subject to the same harmonics as the 'In Hand' position; however, the relatively limited movement of the upper arm when compared to the hand limits the impact of these harmonics.
 
-            These parameters can now be validated against the three patient data recordings mentioned earlier too. If the accuracies are similar to the average, then it supports the idea that these parameters are good for a generalized algorithm.
+            These parameters can now be validated against the three patient data recordings mentioned earlier. If the accuracies are similar to the average, then it supports the idea that these parameters are near optimal.
 
-            The results of running these data recordings are detailed below in Table \ref{tbl_patient_results}. The average accuracy of these three tracks is 92.3\%. This is very close to the average accuracy recorded from the 48 data recordings and well within the median quartiles in the boxplot.
+            The results of applying the algorithm with the optimal set of parameters to the patient recordings are detailed below in Table \ref{tbl_patient_results}. The average accuracy is 92.3\%. This is very close to the average accuracy obtained with the 48 data recordings used to optimise the algorithm and well within the median quartiles in the boxplot.
 
             \begin{center}
                 \captionof{table}{The results of the optimal parameters for the three patient data recordings.}
@@ -568,51 +583,29 @@ for (Point candidate in points) {
 
         \section{Position Specific Parameters}
 
-            The investigations above reveals an interesting fact: set of parameters perform differently on different positions. This leads to the idea that the algorithm may be able to swap between parameters given the position of the phone to give the best result. For each position, a set of optimal parameters will be specified. That is to say, if the data is restricted to the data recordings corresponding to just those that have the phone in a given position, which set of parameters give the best performance. This analysis leads to extremely high accuracies for some positions and parameters.
+            The investigations above revealed a that a given set of parameters performs differently on different positions. This leads to the idea that the algorithm may be able to switch between parameters given the position of the phone to give the best result. For each position, a set of optimal parameters will be determined and then specified for that position. This analysis leads to very high accuracies for some positions.
 
-            \subsection{In Hand}
+            The optimal parameters for the In Hand, Front Pocket, Arm Band, Neck Pouch, and Purse positions all have the types of stage in common, so these will be reported together for brevity. The types of stage for the mentioned positions are: Moving Average for the Filtering Stage and Mean Difference for the Scoring Stage. For all of these, the Pre-Processing stage used $t_{scale} = 10^6$ and $f_{int} = 100Hz$ and the Post-Processing stage used $t_{window} = 200ms$. The rest of the parameters for these positions are given in Table \ref{tbl_params_bundle}.
 
-                The best set of parameters for the 'In Hand' position gives an overall accuracy of 92.4\%. The parameters that achieve this are laid out in Table \ref{tbl_params_in_hand}.
-
-                \begin{center}
-                    \captionof{table}{The parameters for the optimal algorithm performance in the 'In Hand' position.}
-                    \label{tbl_params_in_hand}
-                    \begin{tabular}{|c|c|c|}
-                        \hline
-                        Stage & Type & Parameters \\
-                        \hline
-                        Pre-Processing & Default & $t_{scale}=10^6$, $f_{int}=100Hz$ \\
-                        Filtering & Moving Average & $N=53$ \\
-                        Scoring & Mean Difference & $N=11$ \\
-                        Detection & Default & $c=1.4$ \\
-                        Post-Processing & Default & $t_{window}=200ms$ \\
-                        \hline
-                    \end{tabular}
-                \end{center}
-
-            \subsection{Front Pocket}
-
-                The best set of parameters for the 'Front Pocket' position gives an overall accuracy of 98.0\%. The parameters that achieve this are laid out in Table \ref{tbl_params_front_pocket}.
-
-                \begin{center}
-                    \captionof{table}{The parameters for the optimal algorithm performance in the 'Front Pocket' position.}
-                    \label{tbl_params_front_pocket}
-                    \begin{tabular}{|c|c|c|}
-                        \hline
-                        Stage & Type & Parameters \\
-                        \hline
-                        Pre-Processing & Default & $t_{scale}=10^6$, $f_{int}=100Hz$ \\
-                        Filtering & Moving Average & $N=29$ \\
-                        Scoring & Mean Difference & $N=27$ \\
-                        Detection & Default & $c=1.2$ \\
-                        Post-Processing & Default & $t_{window}=200ms$ \\
-                        \hline
-                    \end{tabular}
-                \end{center}  
+            \begin{center}
+                \captionof{table}{The parameters for the optimal algorithm performance in the In Hand, Front Pocket, Arm Band, Neck Pouch, and Purse position.}
+                \label{tbl_params_bundle}
+                \begin{tabular}{|c|c|c|c||c|}
+                    \hline
+                    Position & Filtering & Scoring & Detection & Average Accuracy \\
+                    \hline
+                    In Hand & $N=53$ & $N=11$ & $c=1.4$ & 92.4\% \\
+                    Front Pocket & $N=29$ & $N=27$ & $c=1.2$ & 98.0\% \\
+                    Arm Band & $N=21$ & $N=3$ & $c=1.2$ & 99.4\% \\
+                    Neck Pouch & $N=21$ & $N=11$ & $c=1.2$ & 98.9\% \\
+                    Purse & $N=29$ & $N=11$ & $c=1.2$ & 96.9\% \\
+                    \hline
+                \end{tabular}
+            \end{center}  
 
             \subsection{Back Pocket}
 
-                The best set of parameters for the 'Back Pocket' position gives an overall accuracy of 99.2\%. The parameters that achieve this are laid out in Table \ref{tbl_params_back_pocket}.
+                The best set of parameters for the 'Back Pocket' position gives an overall accuracy of 99.2\%. The parameters that achieve this are given in Table \ref{tbl_params_back_pocket}.
 
                 \begin{center}
                     \captionof{table}{The parameters for the optimal algorithm performance in the 'Back Pocket' position.}
@@ -630,74 +623,11 @@ for (Point candidate in points) {
                     \end{tabular}
                 \end{center}
 
-            \subsection{Arm Band}
-
-                The best set of parameters for the 'Arm Band' position gives an overall accuracy of 99.4\%. The parameters that achieve this are laid out in Table \ref{tbl_params_arm_band}.
-
-                \begin{center}
-                    \captionof{table}{The parameters for the optimal algorithm performance in the 'Arm Band' position.}
-                    \label{tbl_params_arm_band}
-                    \begin{tabular}{|c|c|c|}
-                        \hline
-                        Stage & Type & Parameters \\
-                        \hline
-                        Pre-Processing & Default & $t_{scale}=10^6$, $f_{int}=100Hz$ \\
-                        Filtering & Moving Average & $N=21$ \\
-                        Scoring & Max Difference & $N=3$ \\
-                        Detection & Default & $c=1.2$ \\
-                        Post-Processing & Default & $t_{window}=200ms$ \\
-                        \hline
-                    \end{tabular}
-                \end{center}
-
-            \subsection{Neck Pouch}
-
-                The best set of parameters for the 'Neck Pouch' position gives an overall accuracy of 98.9\%. The parameters that achieve this are laid out in Table \ref{tbl_params_neck_pouch}.
-
-                \begin{center}
-                    \captionof{table}{The parameters for the optimal algorithm performance in the 'Neck Pouch' position.}
-                    \label{tbl_params_neck_pouch}
-                    \begin{tabular}{|c|c|c|}
-                        \hline
-                        Stage & Type & Parameters \\
-                        \hline
-                        Pre-Processing & Default & $t_{scale}=10^6$, $f_{int}=100Hz$ \\
-                        Filtering & Moving Average & $N=21$ \\
-                        Scoring & Mean Difference & $N=11$ \\
-                        Detection & Default & $c=1.2$ \\
-                        Post-Processing & Default & $t_{window}=200ms$ \\
-                        \hline
-                    \end{tabular}
-                \end{center}
-
-            \subsection{Purse}
-
-                The best set of parameters for the 'Purse' position gives an overall accuracy of 96.9\%. The parameters that achieve this are laid out in Table \ref{tbl_params_purse}.
-
-                \begin{center}
-                    \captionof{table}{The parameters for the optimal algorithm performance in the 'Purse' position.}
-                    \label{tbl_params_purse}
-                    \begin{tabular}{|c|c|c|}
-                        \hline
-                        Stage & Type & Parameters \\
-                        \hline
-                        Pre-Processing & Default & $t_{scale}=10^6$, $f_{int}=100Hz$ \\
-                        Filtering & Moving Average & $N=29$ \\
-                        Scoring & Mean Difference & $N=11$ \\
-                        Detection & Default & $c=1.2$ \\
-                        Post-Processing & Default & $t_{window}=200ms$ \\
-                        \hline
-                    \end{tabular}
-                \end{center}    
-
 
 
     \chapter{Further Work}
+        The impact of surface on the results shall be further investigated. A larger sample size is required to determine whether there is any significant difference in algorithm performance between different floor surfaces.
 
-        There are a few things that can be expanded upon and explored given the database collected and the infrastructure built. 
+        Since the timestamps data for the actual steps data exists in the database, one direction of exploration could be to analyse how many steps the algorithm identifies correctly and how many steps the algorithm misses. This is equivalent to a false positive/false negative analysis.
 
-        The impact of surface on the results can be further investigated. Although the hypothesis that there is no difference was failed to be rejected, a larger sample size is needly to conclusively declare that there is no significant difference.
-
-        Since the data for the time stamps of the steps exists in the data, one direction of exploration would be to analyse how many steps the algorithm actually identifies correctly or how many steps the algorithm misses. This is equivalent to a false positive/false negative analysis. This information could provide further information about tuning the algorithm. 
-
-        Another area that can be explored is a finer tuned optimization. The search done in this paper had fairly large step sizes in many of the parameters. The results above could be treated as an indicator of a true maximum locally and using the infrastructure developed, run a finer grained search over the parameter search to yield the true maximum.
+        Another area that could be explored is a less coarse search for the optimal parameters. The results so far could be treated as being preliminary and a finer grained search over the parameter space could be run to yield the true maximum.

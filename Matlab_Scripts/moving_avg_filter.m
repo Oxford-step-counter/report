@@ -1,5 +1,5 @@
 clear all
-L = 51;
+L = 21;
 h = (1/L) * ones(1,L);
 [a,w] = freqz(h);
 w = w * (50/pi);

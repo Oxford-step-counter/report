@@ -2,7 +2,7 @@
 
     \chapter{Overview}
 
-        This section covers the development and evaluation of the step counter algorithm. The algorithm aims to extract the occurences of steps from the raw accelerometer data recorded on a smartphone. Effectively, the problem is one of peak detection in a noisy signal.
+        This section covers the development and evaluation of the step counter algorithm. The algorithm aims to extract the occurrences of steps from the raw accelerometer data recorded on a smartphone. Effectively, the problem is one of peak detection in a noisy signal.
 
         The algorithm developed for this project was adapted from the windowed peak detection algorithm described by Palshakir \cite{palshikar}.
 
@@ -38,7 +38,7 @@
 
             where $m$ is the magnitude of the acceleration signal, $a_{x}$ is the acceleration in the x direction, $a_{y}$ is the acceleration in the y direction, $a_{z}$ is the acceleration in the z direction, $t_{i,adjusted}$ is the adjusted time stamp for the i-th sample, $t_i$ is the time stamp for the i-th sample, $t_0$ is the time stamp of the initial sample, and $t_s$ is the time-scaling factor. For example, converting from nanoseconds to milliseconds, $t_s = 10^6$. 
 
-            Each sample from the accelerometer is then inserted into a simple data structure and is appended to an internal buffer of size 2. When this buffer is full, the two points ihe buffer are linearly interpolated. Although the developer can specify a desired sample rate for the accelerometer, there is no guarantee that the accelerometer will be sampled at this rate, hence interpolation is needed. An example of this is shown below in Figure \ref{img_sampling_freq} where time between samples is plotted against samples. For the subsequent filtering stage, we need to ensure that the data is sampled at a constant rate.
+            Each sample from the accelerometer is then inserted into a simple data structure and is appended to an internal buffer of size 2. When this buffer is full, the two points in the buffer are linearly interpolated. Although the developer can specify a desired sample rate for the accelerometer, there is no guarantee that the accelerometer will be sampled at this rate, hence interpolation is needed. An example of this is shown below in Figure \ref{img_sampling_freq} where time between samples is plotted against samples. For the subsequent filtering stage, we need to ensure that the data is sampled at a constant rate.
 
             The algorithm knows what The desired sample rate determines the values of the linear interpolation equation below:
 
@@ -57,7 +57,7 @@
 
         \section{Filtering Stage}
 
-            The function of the filtering stage is to smooth the signal by removing as much of the high frequency noise from the accelerometer time series as possible.
+            The accelerometer attempts to measure the acceleration forces acting upon the sensor, and in particular motion of the sensor. However, this sensor is subject to noise from a variety of sources (mechanical, electrical, thermal, etc.). The function of the filtering stage is to smooth the signal by removing as much of the high frequency noise from the accelerometer time series as possible.
 
             The filter required is a simple finite impulse response (FIR), low-pass digital filter. In order to capture a variety of walking speeds, the cutoff frequency for this filter will be around 3 Hz. This should be sufficient to capture the walking of even the speediest walkers, as this would translate to an pace of $5.4 mph$ according to the ratio of $2000 steps = 1 mile$ as given by the American College of Sports Medicine \cite{acsm}. Note that the average walking pace for pedestrians aged 14 to 64 was found to be $3.1 mph$ in a study by Knoblauch, et. al. \cite{walking_speed}.
 
@@ -84,17 +84,17 @@
 
             \subsection{Gaussian Filter}
 
-                This is a more complex filter, using a Gaussian as the filter coefficients. This filter attempts to suppress the sidelobes of the moving-average filter by having a smoother transition to the stop-band. The weights of the filter are given by:
+                This is a more complex filter, using a Gaussian as the filter coefficients. This filter attempts to suppress the side lobes of the moving-average filter by having a smoother transition to the stop-band. The weights of the filter are given by:
 
                 \begin{equation}
-                    g_k = \exp(-\frac{1}{2}(\frac{k - \frac{N-1}{2}}{\sigma \frac{N-1}{2}})^2),
+                    g_k = \exp(-\frac{1}{2}(\frac{k - \nu}{\sigma \nu})^2),
                 \end{equation}
 
-                where $g_k$ is the $k^{th}$ coefficient of the filter, $N$ is the length of the filter window, and $\sigma$ is a parameter defining the standard deviation of the Gaussian. Note that the standard deviation also scales with the length of the filter. The frequency response of this filter is shown below in Figure \ref{img_compare_filters}.
+                where $\nu = \frac{N-1}{2}$, $g_k$ is the $k^{th}$ coefficient of the filter, $N$ is the length of the filter window, and $\sigma$ is a parameter defining the standard deviation of the Gaussian. Note that the standard deviation also scales with the length of the filter. The frequency response of this filter is shown below in Figure \ref{img_compare_filters}.
 
             \subsection{Hann Filter}
 
-                This is a similar filter the Gaussian filter, which also attempts to smooth out the response by suppressing the sidelobes of the moving-average filter. The weights of the filter are derived from the Hann window [CIT] and are as follows: 
+                This is a similar filter the Gaussian filter, which also attempts to smooth out the response by suppressing the side lobes of the moving-average filter. The weights of the filter are derived from the Hann window [CIT] and are as follows: 
 
                 \begin{equation}
                     h_k = \frac{1}{2}(1 - \cos(\frac{2\pi k}{N - 1}))
@@ -104,7 +104,7 @@
 
             \subsection{Kaiser-Bessel Filter}
 
-                This is the most complex filter design, which combines the ideal filter response (note a sinc function in the time domain) and a Bessel window to achieve the desired response. The calculation of the coeffcients is as follows \cite{kaiser-bessel}:
+                This is the most complex filter design, which combines the ideal filter response (note a sinc function in the time domain) and a Bessel window to achieve the desired response. The calculation of the coefficients is as follows \cite{kaiser-bessel}:
 
                 First, calculate the window shape parameter $\alpha$. 
 
@@ -190,7 +190,7 @@
 
                 This method is a derivative from the well-known algorithm by Pan and Tompkins \cite{pan-tompkins} that was used for peak detection in electrocardiogram (ECG) waveforms. 
 
-                The original algorithm had four main steps: digital bandpass filter, signal differentiation, squaring of the signal, then a moving integration window to reconstitute the signal.
+                The original algorithm had four main steps: digital band-pass filter, signal differentiation, squaring of the signal, then a moving integration window to reconstitute the signal.
 
                 From this baseline, a modified algorithm was developed:
 
@@ -285,9 +285,9 @@ for (Point candidate in points) {
     \chapter{Data Collection Equipment}
     \label{sc_device}
 
-        A dataset with ground truth data must be acquired in order to optimize and validate the step-counting algorithm. The main goal is step counting over time, with the total count of steps being all that is required. However, in order to open up the versatility of the dataset and enable future improvements of the algorithm, a dataset was collected that would also contain the information for identifying the steps using reference data. Note that the total count of steps can easily be obtained from this more detailed dataset. 
+        A dataset with ground truth data must be acquired in order to optimize and validate the step-counting algorithm. Previous studies, such as \cite{brajdic}, used video annotation to determine the time stamps of steps, but this is time intensive and prone to error. Instead, a custom device was designed and built to derive this information.
 
-        Previous studies, such as \cite{brajdic}, used video annotation to determine the time stamps of steps, but this is time intensive and prone to error. Instead, a custom device was designed and built to derive this information.
+        The main goal of the algorithm is the accurate counting of steps over a period of time. Hence, the ground truth device must only provide this metric to be sufficient. However, in order to open up the versatility of the dataset and enable future improvements of the algorithm, a dataset was collected that would also contain the information for identifying the steps using reference data.
 
         \section{Design}
 
@@ -311,7 +311,7 @@ for (Point candidate in points) {
 
             Unfortunately, this first iteration of the device suffered from low robustness. The device was accurate when functional, but the push buttons broke due to excessive force. The pins of the push buttons also broke a number of times as they were folded flat against the strap due to the weight of the user.
 
-            The second iteration of the design abandoned the push buttons entirely and relied instead on having a pressure-sensitive resistor positioned under the heel of the user inside the shoe. To ensure that this resistor was tolerant and sensitive to the relatively high pressures in this use case, the device used a material called velostat as the variable resistor. Velostat, used primiarly as a packaging material, is "made of polymeric foil impregnated with carbon black to make it electrically conductive" \cite{velostat}. The resistance is reduced when pressure is applied, hence a high current flow corresponds to the foot being down on the ground. The new device was made by taping conductive thread to either side of the velostat, completing the circuit. A picture of the new device can be seen in Figure \ref{img_device_new}.
+            The second iteration of the design abandoned the push buttons entirely and relied instead on having a pressure-sensitive resistor positioned under the heel of the user inside the shoe. To ensure that this resistor was tolerant and sensitive to the relatively high pressures in this use case, the device used a material called velostat as the variable resistor. Velostat, used primarily as a packaging material, is "made of polymeric foil impregnated with carbon black to make it electrically conductive" \cite{velostat}. The resistance is reduced when pressure is applied, hence a high current flow corresponds to the foot being down on the ground. The new device was made by taping conductive thread to either side of the velostat, completing the circuit. A picture of the new device can be seen in Figure \ref{img_device_new}.
 
             \begin{figure}[!th]
                 \includegraphics[width=0.6\textwidth]{Images/device_new.jpg}
@@ -341,12 +341,12 @@ for (Point candidate in points) {
                 \item Provide a simple UI for the user to capture all of this data efficiently.
             \end{itemize}
 
-            The application was designed such that the data would be zipped and compressed together and uploaded to a remote server via HTTP POST. This enabled the user to record multiple data recordings after one another without needing to manually retrieve the files off the device.
+            The application was designed such that the data would be zipped and compressed together and uploaded to a remote server via HTTP POST. This enabled the user to record multiple data recordings after one another without needing to manually retrieve the files off the device, thus expediting the data collection phase.
 
 
         \section{Data Collection}
 
-            A dataset was collected that aimed to capture as many scenarios as possible. The dataset features three participants with different of heights and weights, 3 smartphones (a Google Pixel, a Samsung Galaxy S6, and a Google Nexus 5 device) to ensure that similar devices performed similarly, and 6 phone 'positions': in a hand, in a front pocket, in a back pocket, in an armband, in a shoulder purse, and in a neck pouch on a lanyard. In order to ensure generality, recordings were made on two different surfaces: hard floor (stone or linoleum) and carpeted floors. This resulted in a dataset containing 48 distinct recordings, each with approximately $2.5$ minutes of accelerometer and ground-truth data. 
+            A dataset was collected that aimed to capture as many scenarios as possible. The dataset features three participants with different heights and weights, 3 smartphones (a Google Pixel, a Samsung Galaxy S6, and a Google Nexus 5 device) to ensure that similar devices performed similarly, and 6 phone 'positions': in a hand, in a front pocket, in a back pocket, in an armband, in a shoulder purse, and in a neck pouch on a lanyard. In order to ensure generality, recordings were made on two different surfaces: hard floor (stone or linoleum) and carpeted floors. This resulted in a dataset containing 48 distinct recordings, each with approximately $2.5$ minutes of accelerometer and ground-truth data. 
 
             In addition, 3 recordings were collected from consenting patients participating in a clinical pilot study without the ground truth device data for post-optimization validation. The total steps, in these 3 instances, were hand counted by a trained healthcare professional present at the recording.
 
@@ -428,7 +428,7 @@ for (Point candidate in points) {
 
         However, since there are approximately $2$ hours of data to run through the algorithm, each combination of parameters takes 5 minutes to be tested on a machine with an Intel i5-6200u. If the optimization were run solely on that machine, it would take $3.5$ days to complete.
 
-        The solution to this problem was to build a distributed computing platform such that the computing load could be spread across multiple machines. The backend server was built on Flask \cite{flask}, a web microframework for Python, and served over gunicorn \cite{gunicorn}, a Python WSGI (Web Server Gateway Interface) HTTP webserver. The data was passed back and forward via JSON (JavaScript Object Notation). The backend would also store the results in a PostgreSQL (Structured Query Language) database \cite{postgres} such that the results could be queried easily.
+        The solution to this problem was to build a distributed computing platform such that the computing load could be spread across multiple machines. The backend server was built on Flask \cite{flask}, a web microframework for Python, and served over gunicorn \cite{gunicorn}, a Python WSGI (Web Server Gateway Interface) HTTP webserver. The data were transmitted JSON (JavaScript Object Notation). The backend would also store the results in a PostgreSQL (Structured Query Language) database \cite{postgres} such that the results could be queried easily.
 
         Each machine had a local implementation of the algorithm and a copy of the dataset. The machine queried the backend for a new set of parameters, and fetched the JSON of these with an HTTP GET request. Once the computation was completed, the machine appended the results to the JSON file and returned it via an HTTP POST request to the backend. A new set of parameters was then requested, until all permutations had been exhausted.
 

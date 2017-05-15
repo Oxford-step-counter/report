@@ -1,5 +1,12 @@
 \begin{abstract}
-    [Placeholder]
+
+    Chronic diseases affect large sections of the general population and incur a large costs to the healthcare system, to the tune of \$1.4 trillion per year in the United States. Patients with chronic diseases often require regular evaluation through the collection and analysis of data. This project describes and evaluates algorithms for step counting with a smartphone device and sleep detection with a wrist-mounted wearable device. These correspond to two metrics that healthcare professionals are often interested in, level of activity and sleep quality respectively. Since such devices have high penetration in the population and continue to proliferate, healthcare professionals can utilize these algorithms to enable remote data collection. 
+
+    The step counting algorithm is modular and based on the Windowed Peak Detection design. A ground truth device was developed to enable rapid data collection for optimization and validation of the step counting algorithm. Thus a database was created from the data recordings taken using this ground truth device. The step counting algorithm has multiple options for each module and is further parameterized. The database was used to optimize the step counting algorithm resulting in a median step counting accuracy of 96.8\% across the entire database. Optimizations for specific scenarios can also be extracted giving high accuracies up to 99\% in some cases. 
+
+    The sleep detection algorithm is based on classification with logistic regression. A database from outside sources was utilized for the optimization of this algorithm. A filter is used post-regression to smooth out the logistic regression output giving results that more closely resemble sleep patterns. This methodology gives a median total time asleep error of 10.9\%. This improves upon previous attempts with the same database by roughly 10\%. 
+
+    The source code for both algorithms will be released publicly along with the step counting database that was created during the project. The high accuracy achieved by the step counting algorithm leads it to be ready to be implemented in a medical context. The improvements achieved by the sleep detection algorithm are a step forward and the nature of the algorithm allows for testing and improvements to further refine the results. 
 \end{abstract}
 
 \pagenumbering{roman}
@@ -7,3 +14,4 @@
 \newpage
 \pagenumbering{arabic}
 \setcounter{page}{1}
+

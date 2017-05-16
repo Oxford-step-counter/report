@@ -1,4 +1,5 @@
 *.aux
+Images/*.pdf
 *.gz
 *.log
 *.out
